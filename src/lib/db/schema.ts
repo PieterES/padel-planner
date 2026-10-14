@@ -68,15 +68,7 @@ export const scrapeRuns = sqliteTable("scrape_runs", {
   finishedAt: integer("finished_at", { mode: "timestamp" }),
   slotCount: integer("slot_count"),
   matchCount: integer("match_count"),
-  postedCount: integer("posted_count"),
   error: text("error"),
-});
-
-/** Matches already sent to WhatsApp; re-posted only if the player set changes. */
-export const postedMatches = sqliteTable("posted_matches", {
-  key: text("key").primaryKey(),
-  playersSig: text("players_sig").notNull(),
-  postedAt: integer("posted_at", { mode: "timestamp" }).notNull(),
 });
 
 /** Singleton row (id = 1) with the group-wide constraints. */
@@ -87,8 +79,6 @@ export const settings = sqliteTable("settings", {
   windows: text("windows", { mode: "json" }).$type<(TimeWindow | null)[]>().notNull(),
   minPlayers: integer("min_players").notNull(),
   horizonDays: integer("horizon_days").notNull(),
-  topNPosted: integer("top_n_posted").notNull(),
-  waGroupJid: text("wa_group_jid"),
   /** Secret for the /join/<token> self-signup link; null = sign-ups closed. */
   inviteToken: text("invite_token"),
 });

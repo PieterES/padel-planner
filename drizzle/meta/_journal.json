@@ -15,6 +15,13 @@
       "when": 1792009709329,
       "tag": "0001_acoustic_bruce_banner",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792010470166,
+      "tag": "0002_wooden_black_crow",
+      "breakpoints": true
     }
   ]
 }

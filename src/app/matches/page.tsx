@@ -16,7 +16,7 @@ export default async function MatchesPage() {
     .orderBy(desc(schema.scrapeRuns.id))
     .get();
 
-  // Chronological, grouped by day; ranking matters for WhatsApp, not here.
+  // Chronological, grouped by day.
   const byDay = new Map<string, MatchGroup[]>();
   for (const m of [...matches].sort((a, b) => a.startUtc.getTime() - b.startUtc.getTime())) {
     const day = toLocal(m.startUtc).date;

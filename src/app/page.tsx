@@ -11,7 +11,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       {invalid ? (
         <p>That link isn’t valid (anymore). Ask the organiser for a new one.</p>
       ) : (
-        <p>Open the personal link you received in WhatsApp to get started.</p>
+        <p>Open the invite link from the group chat to join, or your personal link to log in.</p>
       )}
     </div>
   );

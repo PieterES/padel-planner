@@ -15,8 +15,7 @@ FROM node:22-slim
 WORKDIR /app
 ENV NODE_ENV=production \
     TZ=Europe/Amsterdam \
-    DATABASE_PATH=/app/data/app.db \
-    BAILEYS_AUTH_DIR=/app/data/baileys-auth
+    DATABASE_PATH=/app/data/app.db
 COPY --from=build /app/package.json /app/next.config.ts /app/tsconfig.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/.next ./.next

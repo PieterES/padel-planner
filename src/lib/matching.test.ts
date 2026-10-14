@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { AvailabilityRule } from "./availability";
 import {
+  describeWhen,
   findMatches,
-  formatWhatsAppMessage,
-  playersSignature,
-  selectNewMatches,
   type Constraints,
   type Court,
   type Player,
@@ -119,27 +117,8 @@ describe("findMatches", () => {
   });
 });
 
-describe("selectNewMatches", () => {
-  it("skips already-posted matches unless the player set changed", () => {
-    const ms = run([slot("u1", "2026-10-20", h(19)), slot("u1", "2026-10-20", h(21))]);
-    const posted = new Map([[ms[0].key, playersSignature(ms[0])], [ms[1].key, "1,2"]]);
-    expect(selectNewMatches(ms, posted, 5).map((m) => m.key)).toEqual([ms[1].key]);
-    expect(selectNewMatches(ms, new Map(), 1)).toHaveLength(1);
-  });
-});
-
-describe("formatWhatsAppMessage", () => {
-  it("renders a readable summary", () => {
-    const ms = run([slot("u1", "2026-10-20", h(20)), slot("u2", "2026-10-20", h(20))]);
-    const msg = formatWhatsAppMessage(ms, fromLocal("2026-10-19", 30), () => "https://x");
-    expect(msg).toBe(
-      [
-        "🎾 Padel matches (scraped Mon 19 Oct 00:30)",
-        "",
-        "• Tue 20 Oct 20:00–21:30 · Peakz Utrecht · indoor · 2 courts free",
-        "  Free: Anna, Bas, Chris, Dewi, Eva",
-        "  → https://x",
-      ].join("\n"),
-    );
+describe("describeWhen", () => {
+  it("formats in Amsterdam time", () => {
+    expect(describeWhen(fromLocal("2026-10-20", 20 * 60), 90)).toBe("Tue 20 Oct 20:00–21:30");
   });
 });

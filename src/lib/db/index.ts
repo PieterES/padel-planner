@@ -43,7 +43,6 @@ function seed(db: Db) {
       windows: [evening, evening, evening, evening, evening, weekend, weekend],
       minPlayers: 4,
       horizonDays: 28,
-      topNPosted: 5,
     })
     .onConflictDoNothing()
     .run();

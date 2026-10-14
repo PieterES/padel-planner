@@ -6,7 +6,7 @@ import { z } from "zod";
 import { newMagicToken, requireAdmin } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import type { TimeWindow } from "@/lib/matching";
-import { triggerRun, waRelink, waTest } from "@/lib/worker-client";
+import { triggerRun } from "@/lib/worker-client";
 
 const done = () => revalidatePath("/admin");
 
@@ -56,7 +56,6 @@ export async function saveSettings(formData: FormData) {
       durations: formData.getAll("duration").map(Number).filter((d) => [60, 90, 120].includes(d)),
       windows,
       minPlayers: z.coerce.number().int().min(2).max(8).parse(formData.get("minPlayers")),
-      topNPosted: z.coerce.number().int().min(1).max(20).parse(formData.get("topNPosted")),
     })
     .where(eq(schema.settings.id, 1))
     .run();
@@ -64,28 +63,9 @@ export async function saveSettings(formData: FormData) {
   revalidatePath("/matches");
 }
 
-export async function setWhatsAppGroup(formData: FormData) {
-  await requireAdmin();
-  const jid = String(formData.get("jid") ?? "") || null;
-  db.update(schema.settings).set({ waGroupJid: jid }).where(eq(schema.settings.id, 1)).run();
-  done();
-}
-
 export async function scrapeNow() {
   await requireAdmin();
   await triggerRun();
-  done();
-}
-
-export async function sendTestMessage() {
-  await requireAdmin();
-  await waTest();
-  done();
-}
-
-export async function relinkWhatsApp() {
-  await requireAdmin();
-  await waRelink();
   done();
 }
 
@@ -96,12 +76,5 @@ export async function setInvite(open: boolean) {
     .set({ inviteToken: open ? newMagicToken() : null })
     .where(eq(schema.settings.id, 1))
     .run();
-  done();
-}
-
-/** Forget what was posted so the next run re-posts the current top matches. */
-export async function resetPosted() {
-  await requireAdmin();
-  db.delete(schema.postedMatches).run();
   done();
 }
