@@ -26,7 +26,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const [user, admin] = await Promise.all([currentUser(), isAdmin()]);
   const links = [
-    ...(user ? [{ href: "/matches", label: "Matches" }] : []),
+    ...(user || admin ? [{ href: "/matches", label: "Matches" }] : []),
     ...(user || admin ? [{ href: "/runs", label: "Runs" }] : []),
     ...(user ? [{ href: "/me", label: "My week" }] : []),
     ...(admin ? [{ href: "/admin", label: "Admin" }] : []),

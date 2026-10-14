@@ -1,11 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { setPassword } from "./actions";
 
-/** Set or change a password. `askCurrent`: the friend is changing their own existing password. */
-export function PasswordForm({ userId, askCurrent }: { userId: number; askCurrent: boolean }) {
-  const [message, action, pending] = useActionState(setPassword.bind(null, userId), null);
+type PasswordAction = (prev: string | null, formData: FormData) => Promise<string | null>;
+
+/** Set or change a password. `askCurrent`: also ask for the current password. */
+export function PasswordForm({ save, askCurrent }: { save: PasswordAction; askCurrent: boolean }) {
+  const [message, action, pending] = useActionState(save, null);
   const ok = message?.endsWith("✓");
   return (
     <form action={action} className="grid gap-3 sm:grid-cols-3 sm:items-end">

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { newMagicToken, signIn, userByName } from "@/lib/auth";
+import { isAdminName, newMagicToken, signIn, userByName } from "@/lib/auth";
 import { getSettings } from "@/lib/data";
 import { db, schema } from "@/lib/db";
 import { hashPassword, passwordProblem } from "@/lib/password";
@@ -24,6 +24,7 @@ export async function join(
   const problem = passwordProblem(password, String(formData.get("confirm") ?? ""));
   if (problem) return problem;
 
+  if (isAdminName(name.data)) return "That name is reserved. Pick another one.";
   if (userByName(name.data)) {
     return `“${name.data}” is already in the group. Log in on the home page, or pick another name.`;
   }

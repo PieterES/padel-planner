@@ -21,7 +21,7 @@ npm run spike          # Playwright recorder for reverse-engineering peakzpadel.
 docker compose up -d --build   # production (web + worker), data in ./data
 ```
 
-Admin access: open `/admin/login?token=$ADMIN_TOKEN` once. Friends join through the group invite link `/join/<settings.inviteToken>` with a name + password, and log in on any device with name (case-insensitive, unique) + password on the home page (`src/app/login`). Passwords are scrypt hashes (`src/lib/password.ts`, with an in-memory 5-failure lockout). The login cookie's value is the user's `magicToken`, which also still works as a `/u/<token>` recovery link from `/admin`. Friends without a password are nagged on `/me`; the admin can set anyone's password on `/admin/friends/[id]`.
+Admin access: log in on the home page as name `admin` (a special account, not a `users` row, so it never shows up as a friend; the name is reserved) with the password set under /admin → Admin account (hash in `settings.admin_password_hash`; before that `ADMIN_PASSWORD` from env, else "admin"). The admin session is the `pp_admin` cookie holding `ADMIN_TOKEN`; `/admin/login?token=$ADMIN_TOKEN` still works too. Friends join through the group invite link `/join/<settings.inviteToken>` with a name + password, and log in on any device with name (case-insensitive, unique) + password on the home page (`src/app/login`). Passwords are scrypt hashes (`src/lib/password.ts`, with an in-memory 5-failure lockout). The login cookie's value is the user's `magicToken`, which also still works as a `/u/<token>` recovery link from `/admin`. Friends without a password are nagged on `/me`; the admin can set anyone's password on `/admin/friends/[id]`.
 
 ## Architecture
 

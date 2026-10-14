@@ -99,4 +99,6 @@ export const settings = sqliteTable("settings", {
   horizonDays: integer("horizon_days").notNull(),
   /** Secret for the /join/<token> self-signup link; null = sign-ups closed. */
   inviteToken: text("invite_token"),
+  /** Organiser login ("admin") password hash; null = ADMIN_PASSWORD env or "admin". */
+  adminPasswordHash: text("admin_password_hash"),
 });

@@ -50,6 +50,13 @@
       "when": 1792015020363,
       "tag": "0006_low_mastermind",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1792015756700,
+      "tag": "0007_jazzy_typhoid_mary",
+      "breakpoints": true
     }
   ]
 }

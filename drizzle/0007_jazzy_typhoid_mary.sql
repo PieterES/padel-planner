@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `admin_password_hash` text;

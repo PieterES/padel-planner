@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { BallMark, PageHeader, Section } from "../ui";
 import { AvailabilityEditor } from "./availability-editor";
+import { setPassword } from "./actions";
 import { PasswordForm } from "./password-form";
 
 export default async function MePage({ searchParams }: PageProps<"/me">) {
@@ -47,7 +48,7 @@ export default async function MePage({ searchParams }: PageProps<"/me">) {
         title="Password"
         description={`Log in anywhere with your name “${user.name}” and this password.`}
       >
-        <PasswordForm userId={user.id} askCurrent={!!user.passwordHash} />
+        <PasswordForm save={setPassword.bind(null, user.id)} askCurrent={!!user.passwordHash} />
       </Section>
     </div>
   );

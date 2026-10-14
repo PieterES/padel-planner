@@ -1,5 +1,5 @@
 import { desc, eq } from "drizzle-orm";
-import { requireUser } from "@/lib/auth";
+import { requireViewer } from "@/lib/auth";
 import { currentMatches } from "@/lib/data";
 import { db, schema } from "@/lib/db";
 import { describeWhen, type MatchGroup } from "@/lib/matching";
@@ -8,7 +8,7 @@ import { MatchCard, toMatchCard } from "../match-card";
 import { EmptyState, PageHeader } from "../ui";
 
 export default async function MatchesPage() {
-  const user = await requireUser();
+  const user = await requireViewer();
   const matches = currentMatches();
   const slugs = new Map(db.select().from(schema.locations).all().map((l) => [l.id, l.slug]));
   const groupSize = await db.$count(schema.users);
@@ -32,7 +32,7 @@ export default async function MatchesPage() {
       : day === addDays(today, 1)
         ? "Tomorrow"
         : describeWhen(first.startUtc, 0).split(" ").slice(0, 3).join(" ");
-  const mine = matches.filter((m) => m.players.some((p) => p.id === user.id)).length;
+  const mine = user ? matches.filter((m) => m.players.some((p) => p.id === user.id)).length : null;
 
   return (
     <div>
@@ -43,7 +43,7 @@ export default async function MatchesPage() {
 
       <div className="mb-8 grid grid-cols-3 gap-3">
         <Stat label="matches" value={matches.length} />
-        <Stat label="you can join" value={mine} />
+        {mine !== null && <Stat label="you can join" value={mine} />}
         <Stat
           label="courts checked"
           value={lastRun?.finishedAt ? describeWhen(lastRun.finishedAt, 0).split(" ").slice(0, 3).join(" ") : "never"}
@@ -69,7 +69,7 @@ export default async function MatchesPage() {
                   <MatchCard
                     key={m.key}
                     showDate={false}
-                    m={toMatchCard(m, { slugs, groupSize, viewerId: user.id })}
+                    m={toMatchCard(m, { slugs, groupSize, viewerId: user?.id })}
                   />
                 ))}
               </ul>

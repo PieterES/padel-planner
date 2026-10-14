@@ -3,8 +3,9 @@
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { newMagicToken, requireAdmin, userByName } from "@/lib/auth";
+import { isAdminName, isAdminPassword, newMagicToken, requireAdmin, userByName } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
+import { hashPassword, passwordProblem } from "@/lib/password";
 import { parseWeekRanges } from "@/lib/week-ranges";
 import { triggerRun } from "@/lib/worker-client";
 
@@ -13,7 +14,7 @@ const done = () => revalidatePath("/admin");
 export async function addUser(formData: FormData) {
   await requireAdmin();
   const name = z.string().trim().min(1).max(40).parse(formData.get("name"));
-  if (userByName(name)) return; // names are logins, so they must be unique
+  if (userByName(name) || isAdminName(name)) return; // names are logins: unique, "admin" reserved
   db.insert(schema.users).values({ name, magicToken: newMagicToken() }).run();
   done();
 }
@@ -67,4 +68,16 @@ export async function setInvite(open: boolean) {
     .where(eq(schema.settings.id, 1))
     .run();
   done();
+}
+
+/** Change the organiser ("admin") login password. */
+export async function setAdminPassword(_prev: string | null, formData: FormData): Promise<string | null> {
+  await requireAdmin();
+  if (!isAdminPassword(String(formData.get("current") ?? ""))) return "Current password is wrong.";
+  const password = String(formData.get("password") ?? "");
+  const problem = passwordProblem(password, String(formData.get("confirm") ?? ""));
+  if (problem) return problem;
+  db.update(schema.settings).set({ adminPasswordHash: hashPassword(password) }).where(eq(schema.settings.id, 1)).run();
+  done();
+  return "Password saved ✓";
 }

@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db, schema } from "./db";
+import { verifyPassword } from "./password";
 
 export const USER_COOKIE = "pp_user";
 export const ADMIN_COOKIE = "pp_admin";
@@ -49,6 +50,34 @@ export function isAdminToken(token: string | undefined): boolean {
   const expected = process.env.ADMIN_TOKEN;
   if (!expected || !token || token.length !== expected.length) return false;
   return timingSafeEqual(Buffer.from(token), Buffer.from(expected));
+}
+
+/**
+ * The organiser logs in on the normal login form as "admin". This is not a
+ * friend: there's no users row, so it never appears in lists or matches.
+ */
+export const ADMIN_NAME = "admin";
+export const isAdminName = (name: string) => name.trim().toLowerCase() === ADMIN_NAME;
+
+/** Hash set from /admin; until then the password is ADMIN_PASSWORD from the env, or "admin". */
+function adminPasswordHash(): string | null {
+  return db.select().from(schema.settings).where(eq(schema.settings.id, 1)).get()?.adminPasswordHash ?? null;
+}
+
+export function isAdminPassword(password: string): boolean {
+  const hash = adminPasswordHash();
+  if (hash) return verifyPassword(password, hash);
+  const expected = process.env.ADMIN_PASSWORD || "admin";
+  if (password.length !== expected.length) return false;
+  return timingSafeEqual(Buffer.from(password), Buffer.from(expected));
+}
+
+/** Still using the built-in "admin" password? (Shown as a warning on /admin.) */
+export const adminUsesDefaultPassword = () => !adminPasswordHash() && !process.env.ADMIN_PASSWORD;
+
+/** Give this browser admin access (the cookie holds ADMIN_TOKEN, as /admin/login does). */
+export async function signInAdmin() {
+  (await cookies()).set(ADMIN_COOKIE, process.env.ADMIN_TOKEN ?? "", COOKIE_OPTS);
 }
 
 export async function isAdmin(): Promise<boolean> {

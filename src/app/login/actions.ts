@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { signIn, userByName } from "@/lib/auth";
+import { isAdminName, isAdminPassword, signIn, signInAdmin, userByName } from "@/lib/auth";
 import {
   clearLoginFailures,
   loginLocked,
@@ -14,6 +14,17 @@ export async function login(_prev: string | null, formData: FormData): Promise<s
   const password = String(formData.get("password") ?? "");
   if (!name || !password) return "Enter your name and password.";
   if (loginLocked(name)) return "Too many wrong attempts. Wait a minute and try again.";
+
+  if (isAdminName(name)) {
+    if (!process.env.ADMIN_TOKEN) return "Admin login is off: set ADMIN_TOKEN in .env.";
+    if (!isAdminPassword(password)) {
+      recordLoginFailure(name);
+      return "Name or password is wrong.";
+    }
+    clearLoginFailures(name);
+    await signInAdmin();
+    redirect("/admin");
+  }
 
   const user = userByName(name);
   if (!user || !verifyPassword(password, user.passwordHash)) {

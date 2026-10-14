@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { AvailabilityEditor } from "@/app/me/availability-editor";
+import { setPassword } from "@/app/me/actions";
 import { PasswordForm } from "@/app/me/password-form";
 import { Avatar, Section } from "@/app/ui";
 
@@ -59,7 +60,7 @@ export default async function FriendAvailabilityPage({
             : `${friend.name} has no password yet, so they can only log in with their personal link. Set one and tell them.`
         }
       >
-        <PasswordForm key={friend.id} userId={friend.id} askCurrent={false} />
+        <PasswordForm key={friend.id} save={setPassword.bind(null, friend.id)} askCurrent={false} />
       </Section>
     </div>
   );

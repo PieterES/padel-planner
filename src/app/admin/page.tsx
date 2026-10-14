@@ -1,6 +1,6 @@
 import { asc, desc } from "drizzle-orm";
 import Link from "next/link";
-import { inviteLink, magicLink, requireAdmin } from "@/lib/auth";
+import { adminUsesDefaultPassword, inviteLink, magicLink, requireAdmin } from "@/lib/auth";
 import { getSettings } from "@/lib/data";
 import { db, schema } from "@/lib/db";
 import { describeWhen } from "@/lib/matching";
@@ -8,7 +8,8 @@ import { workerStatus } from "@/lib/worker-client";
 import { CopyField } from "../copy-field";
 import { Avatar, PageHeader, Section, StatusDot } from "../ui";
 import { WeekRangesFields } from "../week-ranges-fields";
-import { addUser, deleteUser, regenerateLink, saveSettings, setInvite } from "./actions";
+import { PasswordForm } from "../me/password-form";
+import { addUser, deleteUser, regenerateLink, saveSettings, setAdminPassword, setInvite } from "./actions";
 import { ScrapeButton } from "./scrape-button";
 
 export default async function AdminPage() {
@@ -26,6 +27,17 @@ export default async function AdminPage() {
   return (
     <div className="space-y-6">
       <PageHeader eyebrow="Organiser" title="Admin" />
+      {adminUsesDefaultPassword() && (
+        <div className="card flex items-start gap-3 border-danger/40 bg-danger/5">
+          <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-danger font-bold text-white">!</span>
+          <div>
+            <p className="font-display text-lg font-semibold">You’re using the default password “admin”</p>
+            <p className="text-sm text-muted">
+              Anyone can guess it and manage the group. Change it under “Admin account” at the bottom.
+            </p>
+          </div>
+        </div>
+      )}
 
       <Section
         icon="refresh"
@@ -233,6 +245,13 @@ export default async function AdminPage() {
 
           <button className="btn">Save settings</button>
         </form>
+      </Section>
+      <Section
+        icon="key"
+        title="Admin account"
+        description="Log in on the home page with name “admin” and this password, on any device."
+      >
+        <PasswordForm save={setAdminPassword} askCurrent />
       </Section>
     </div>
   );
