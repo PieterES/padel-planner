@@ -7,9 +7,10 @@ services:
       WORKER_URL: http://worker:4000
     volumes:
       - ./data:/app/data
-    # Only reachable from the Pi itself; Cloudflare Tunnel forwards to it.
+    # Only reachable from the Pi itself; point the Cloudflare Tunnel at
+    # http://localhost:<WEB_PORT>. Default 3010 (3000 is often taken).
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${WEB_PORT:-3010}:3000"
     depends_on: [worker]
     restart: unless-stopped
 
