@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --card: #f9fafb;
+  --accent: #0f766e;
+  --accent-soft: #ccfbf1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b0f0e;
+    --foreground: #ededed;
+    --muted: #9ca3af;
+    --line: #262b2a;
+    --card: #141a19;
+    --accent: #2dd4bf;
+    --accent-soft: #134e4a;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+nav a {
+  text-decoration: none;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-background disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center rounded-md border border-line px-3 py-1.5 text-sm;
+  }
+  .input {
+    @apply rounded-md border border-line bg-background px-2 py-1 text-sm;
+  }
+  .card {
+    @apply rounded-lg border border-line bg-card p-4;
+  }
+  h1 {
+    @apply mb-4 text-2xl font-semibold;
+  }
+  h2 {
+    @apply mb-3 text-lg font-semibold;
+  }
+}

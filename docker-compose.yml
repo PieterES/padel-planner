@@ -1,0 +1,35 @@
+services:
+  web:
+    build: .
+    image: padel-planner
+    env_file: .env
+    environment:
+      WORKER_URL: http://worker:4000
+    volumes:
+      - ./data:/app/data
+    # Only reachable from the Pi itself; Cloudflare Tunnel forwards to it.
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on: [worker]
+    restart: unless-stopped
+
+  worker:
+    image: padel-planner
+    command: ["npx", "tsx", "worker/index.ts"]
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+    # No published ports: only `web` talks to it over the compose network.
+    restart: unless-stopped
+
+  # Optional: run the tunnel in compose instead of on the host.
+  #   docker compose --profile tunnel up -d   (needs TUNNEL_TOKEN in .env)
+  # In the Cloudflare dashboard, point the public hostname to http://web:3000.
+  cloudflared:
+    image: cloudflare/cloudflared:2025.10.0
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+    depends_on: [web]
+    restart: unless-stopped
+    profiles: [tunnel]

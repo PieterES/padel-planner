@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `invite_token` text;
