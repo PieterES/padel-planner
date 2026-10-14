@@ -5,10 +5,11 @@ import { getSettings } from "@/lib/data";
 import { db, schema } from "@/lib/db";
 import { describeWhen } from "@/lib/matching";
 import { workerStatus } from "@/lib/worker-client";
-import { addUser, deleteUser, regenerateLink, saveSettings, setInvite } from "./actions";
+import { CopyField } from "../copy-field";
+import { Avatar, PageHeader, Section, StatusDot } from "../ui";
 import { WeekRangesFields } from "../week-ranges-fields";
+import { addUser, deleteUser, regenerateLink, saveSettings, setInvite } from "./actions";
 import { ScrapeButton } from "./scrape-button";
-
 
 export default async function AdminPage() {
   await requireAdmin();
@@ -20,148 +21,204 @@ export default async function AdminPage() {
   const locations = db.select().from(schema.locations).orderBy(asc(schema.locations.name)).all();
   const runs = db.select().from(schema.scrapeRuns).orderBy(desc(schema.scrapeRuns.id)).limit(5).all();
   const worker = await workerStatus();
+  const when = (d: Date) => describeWhen(d, 0).split("–")[0];
 
   return (
-    <div className="space-y-10">
-      <h1>Admin</h1>
+    <div className="space-y-6">
+      <PageHeader eyebrow="Organiser" title="Admin" />
 
-      <section>
-        <h2>Scraping</h2>
-        <ScrapeButton reachable={worker.reachable} running={worker.running} />
-        <table className="w-full text-left text-sm">
-          <thead className="text-muted">
-            <tr>
-              <th className="py-1">Run</th>
-              <th>Started</th>
-              <th>Status</th>
-              <th title="Free (court, start time, length) options at the enabled clubs, next 28 days">
-                Free court times
-              </th>
-              <th>Matches</th>
-            </tr>
-          </thead>
-          <tbody>
-            {runs.map((r) => (
-              <tr key={r.id} className="border-t border-line">
-                <td className="py-1">
-                  #{r.id} {r.trigger}
-                </td>
-                <td>{describeWhen(r.startedAt, 0).split("–")[0]}</td>
-                <td title={r.error ?? undefined}>{r.status}</td>
-                <td>{r.slotCount ?? "–"}</td>
-                <td>{r.matchCount ?? "–"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <Section
+        icon="refresh"
+        title="Court check"
+        description="Fetches Peakz availability for the next 4 weeks and finds matches."
+        aside={<ScrapeButton reachable={worker.reachable} running={worker.running} />}
+      >
+        <ul className="divide-y divide-line rounded-xl border border-line">
+          {runs.map((r) => (
+            <li key={r.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2.5 text-sm">
+              <span className="flex w-44 items-center gap-2 font-medium" title={r.error ?? undefined}>
+                <StatusDot status={r.status} />
+                {when(r.startedAt)}
+              </span>
+              <span className="chip-muted">{r.trigger === "cron" ? "nightly" : r.trigger}</span>
+              <span
+                className="text-muted"
+                title="Free (court, start time, length) options at the enabled clubs, next 28 days"
+              >
+                {r.slotCount?.toLocaleString("nl-NL") ?? "–"} free court times
+              </span>
+              {r.status === "ok" ? (
+                <Link href={`/runs?run=${r.id}`} className="ml-auto font-semibold text-court no-underline">
+                  {r.matchCount} matches →
+                </Link>
+              ) : (
+                <span className="ml-auto text-muted">{r.status}</span>
+              )}
+            </li>
+          ))}
+          {!runs.length && <li className="px-3 py-4 text-sm text-muted">No runs yet.</li>}
+        </ul>
+      </Section>
 
-      <section>
-        <h2>Friends</h2>
-        <div className="card mb-4 text-sm">
-          <p className="mb-2 font-medium">Invite link: post this in the group chat</p>
+      <Section icon="users" title="Friends" description={`${users.length} in the group`}>
+        <div className="mb-5 rounded-xl bg-court-soft p-4">
+          <p className="mb-2 text-sm font-semibold">Invite link: post this in the group chat</p>
           {settings.inviteToken ? (
             <div className="flex flex-wrap items-center gap-2">
-              <input
-                className="input min-w-0 flex-1 font-mono text-xs"
-                readOnly
-                value={inviteLink(settings.inviteToken)}
-              />
+              <CopyField value={inviteLink(settings.inviteToken)} />
               <form action={setInvite.bind(null, true)}>
                 <button className="btn-ghost" title="The old invite link stops working">
-                  New invite link
+                  New link
                 </button>
               </form>
               <form action={setInvite.bind(null, false)}>
-                <button className="btn-ghost">Close sign-ups</button>
+                <button className="btn-danger">Close sign-ups</button>
               </form>
             </div>
           ) : (
-            <form action={setInvite.bind(null, true)} className="flex items-center gap-3">
-              <span className="text-muted">Sign-ups are closed.</span>
+            <form action={setInvite.bind(null, true)} className="flex flex-wrap items-center gap-3">
+              <span className="text-sm text-muted">Sign-ups are closed.</span>
               <button className="btn">Create invite link</button>
             </form>
           )}
         </div>
-        <ul className="mb-3 divide-y divide-line">
+
+        <ul className="divide-y divide-line">
           {users.map((u) => (
-            <li key={u.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-              <span className="w-24 font-medium">{u.name}</span>
+            <li key={u.id} className="flex flex-wrap items-center gap-3 py-3 text-sm">
+              <Avatar name={u.name} size="h-9 w-9 text-xs" />
+              <span className="w-28 font-semibold">{u.name}</span>
+              {withRules.has(u.id) ? (
+                <Link href={`/admin/friends/${u.id}`} className="chip no-underline">
+                  ✓ availability set
+                </Link>
+              ) : (
+                <Link
+                  href={`/admin/friends/${u.id}`}
+                  className="chip bg-lime/30 text-lime-ink no-underline dark:text-lime"
+                >
+                  ⚠ set availability
+                </Link>
+              )}
+              <details className="group ml-auto">
+                <summary className="btn-ghost cursor-pointer list-none">Personal link</summary>
+                <div className="mt-2 flex w-full flex-wrap items-center gap-2 sm:w-[28rem]">
+                  <CopyField value={magicLink(u.magicToken)} />
+                  <form action={regenerateLink.bind(null, u.id)}>
+                    <button className="btn-ghost" title="Invalidates the old link">
+                      New
+                    </button>
+                  </form>
+                </div>
+              </details>
               <Link href={`/admin/friends/${u.id}`} className="btn-ghost no-underline">
-                {withRules.has(u.id) ? "Edit availability" : "⚠️ Set availability"}
+                Edit
               </Link>
-              <input
-                className="input min-w-0 flex-1 font-mono text-xs"
-                readOnly
-                value={magicLink(u.magicToken)}
-              />
-              <form action={regenerateLink.bind(null, u.id)}>
-                <button className="btn-ghost" title="Invalidates the old link">
-                  New link
-                </button>
-              </form>
               <form action={deleteUser.bind(null, u.id)}>
-                <button className="btn-ghost">Remove</button>
+                <button className="btn-danger" title={`Remove ${u.name}`}>
+                  Remove
+                </button>
               </form>
             </li>
           ))}
         </ul>
-        <form action={addUser} className="flex gap-2">
-          <input className="input" name="name" placeholder="Name" required maxLength={40} />
+        <form action={addUser} className="mt-4 flex gap-2">
+          <input className="input flex-1 sm:flex-none" name="name" placeholder="Name" required maxLength={40} />
           <button className="btn">Add friend</button>
         </form>
-      </section>
+      </Section>
 
-      <section>
-        <h2>Group settings</h2>
-        {/* key: after an action React resets the form, and a <select> goes back to its
-            first-render default; remount with the saved values instead. */}
+      <Section icon="sliders" title="Group settings" description="What counts as a match for everyone.">
+        {/* key: after an action React resets the form to its first-render defaults;
+            remount with the saved values instead. */}
         <form
           key={JSON.stringify([settings, locations.map((l) => l.enabled)])}
           action={saveSettings}
-          className="space-y-5 text-sm"
+          className="space-y-6 text-sm"
         >
           <fieldset>
-            <legend className="mb-1 font-medium">Clubs</legend>
-            {locations.map((l) => (
-              <label key={l.id} className="mr-4 inline-flex items-center gap-1.5">
-                <input type="checkbox" name="location" value={l.id} defaultChecked={l.enabled} />
-                {l.name}
-              </label>
-            ))}
+            <legend className="eyebrow mb-2">Clubs</legend>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {locations.map((l) => {
+                const [city, venue] = l.name.split(" - ");
+                return (
+                  <label
+                    key={l.id}
+                    className="flex cursor-pointer items-center gap-3 rounded-xl border border-line p-3 transition has-[:checked]:border-court has-[:checked]:bg-court-soft"
+                  >
+                    <input type="checkbox" className="check" name="location" value={l.id} defaultChecked={l.enabled} />
+                    <span>
+                      <span className="block font-semibold">{venue ?? l.name}</span>
+                      <span className="text-xs text-muted">{city}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
           </fieldset>
 
-          <fieldset className="flex flex-wrap gap-6">
-            <label className="flex flex-col gap-1">
-              <span className="font-medium">Court</span>
-              <select className="input" name="indoorOutdoor" defaultValue={settings.indoorOutdoor}>
-                <option value="any">indoor or outdoor</option>
-                <option value="indoor">indoor only</option>
-                <option value="outdoor">outdoor only</option>
-              </select>
+          <div className="grid gap-6 sm:grid-cols-3">
+            <fieldset>
+              <legend className="eyebrow mb-2">Court</legend>
+              <div className="flex rounded-xl border border-line p-1">
+                {(
+                  [
+                    ["any", "Any"],
+                    ["indoor", "Indoor"],
+                    ["outdoor", "Outdoor"],
+                  ] as const
+                ).map(([v, label]) => (
+                  <label
+                    key={v}
+                    className="flex-1 cursor-pointer rounded-lg py-1.5 text-center font-medium text-muted transition has-[:checked]:bg-navy has-[:checked]:text-navy-ink"
+                  >
+                    <input
+                      type="radio"
+                      className="sr-only"
+                      name="indoorOutdoor"
+                      value={v}
+                      defaultChecked={settings.indoorOutdoor === v}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend className="eyebrow mb-2">Duration</legend>
+              <div className="flex gap-2">
+                {[60, 90, 120].map((d) => (
+                  <label
+                    key={d}
+                    className="flex-1 cursor-pointer rounded-xl border border-line py-1.5 text-center font-medium text-muted transition has-[:checked]:border-court has-[:checked]:bg-court-soft has-[:checked]:text-court"
+                  >
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      name="duration"
+                      value={d}
+                      defaultChecked={settings.durations.includes(d)}
+                    />
+                    {d}′
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <label className="flex flex-col">
+              <span className="eyebrow mb-2">Min. players</span>
+              <input
+                className="input w-24"
+                type="number"
+                name="minPlayers"
+                min={2}
+                max={8}
+                defaultValue={settings.minPlayers}
+              />
             </label>
-            <div>
-              <span className="mb-1 block font-medium">Duration</span>
-              {[60, 90, 120].map((d) => (
-                <label key={d} className="mr-3 inline-flex items-center gap-1.5">
-                  <input
-                    type="checkbox"
-                    name="duration"
-                    value={d}
-                    defaultChecked={settings.durations.includes(d)}
-                  />
-                  {d} min
-                </label>
-              ))}
-            </div>
-            <label className="flex flex-col gap-1">
-              <span className="font-medium">Min. players</span>
-              <input className="input w-20" type="number" name="minPlayers" min={2} max={8} defaultValue={settings.minPlayers} />
-            </label>
-          </fieldset>
+          </div>
 
           <fieldset>
-            <legend className="mb-1 font-medium">When we play (match must fit inside)</legend>
+            <legend className="eyebrow mb-2">When we play (a match must fit inside)</legend>
             <WeekRangesFields
               prefix="win"
               values={settings.windows}
@@ -171,7 +228,7 @@ export default async function AdminPage() {
 
           <button className="btn">Save settings</button>
         </form>
-      </section>
+      </Section>
     </div>
   );
 }

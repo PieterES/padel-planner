@@ -3,6 +3,7 @@ import { requireViewer } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { describeWhen } from "@/lib/matching";
 import { toMatchCard } from "../match-card";
+import { EmptyState, PageHeader } from "../ui";
 import { MatchList } from "./match-list";
 import { RunPicker } from "./run-picker";
 
@@ -21,8 +22,10 @@ export default async function RunsPage({ searchParams }: PageProps<"/runs">) {
   if (!runs.length) {
     return (
       <div>
-        <h1>Runs</h1>
-        <p className="card">No runs yet. They happen every night at 00:30, or from Admin.</p>
+        <PageHeader eyebrow="History" title="Runs" />
+        <EmptyState title="No runs yet">
+          Peakz is checked every night at 00:30, or whenever the admin presses “Scrape &amp; match now”.
+        </EmptyState>
       </div>
     );
   }
@@ -35,8 +38,9 @@ export default async function RunsPage({ searchParams }: PageProps<"/runs">) {
     .orderBy(asc(schema.runMatches.rank))
     .all();
   const slugs = new Map(db.select().from(schema.locations).all().map((l) => [l.id, l.slug]));
+  const groupSize = await db.$count(schema.users);
   const cards = rows.map((m) =>
-    toMatchCard(m, { slugs, viewerId: viewer?.id, rank: m.rank, withDate: true }),
+    toMatchCard(m, { slugs, groupSize, viewerId: viewer?.id, rank: m.rank }),
   );
 
   const label = (r: (typeof runs)[number]) =>
@@ -44,22 +48,24 @@ export default async function RunsPage({ searchParams }: PageProps<"/runs">) {
 
   return (
     <div>
-      <h1>Runs</h1>
-      <div className="mb-2 flex flex-wrap items-end gap-4">
-        <RunPicker runs={runs.map((r) => ({ id: r.id, label: label(r) }))} selected={selected.id} />
-      </div>
-      <p className="mb-6 text-sm text-muted">
-        Best matches from this run: most friends free first, then earliest. Availability as it was
-        when the run happened; see Matches for the live view.
-      </p>
+      <PageHeader
+        eyebrow="History"
+        title="Best matches per run"
+        actions={
+          <RunPicker runs={runs.map((r) => ({ id: r.id, label: label(r) }))} selected={selected.id} />
+        }
+      >
+        Ranked by most friends free, then earliest. Availability as it was when the run happened.
+        Matches shows the live view.
+      </PageHeader>
       {cards.length ? (
         <MatchList matches={cards} />
       ) : (
-        <p className="card">
+        <EmptyState title={selected.matchCount ? "Not saved" : "No matches in this run"}>
           {selected.matchCount
-            ? "This run's matches weren't saved (it ran before this page existed)."
-            : "No matches in this run."}
-        </p>
+            ? "This run happened before results were saved per run."
+            : "Not enough friends were free when there were courts available."}
+        </EmptyState>
       )}
     </div>
   );

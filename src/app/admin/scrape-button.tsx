@@ -24,11 +24,12 @@ export function ScrapeButton({ reachable, running: initial }: { reachable: boole
     return () => clearInterval(id);
   }, [running, router]);
 
+  const busy = running || starting;
   return (
-    <div className="mb-3 flex items-center gap-3">
+    <div className="flex flex-col items-end gap-1">
       <button
         className="btn"
-        disabled={!reachable || running || starting}
+        disabled={!reachable || busy}
         onClick={() =>
           startRun(async () => {
             await scrapeNow();
@@ -36,10 +37,17 @@ export function ScrapeButton({ reachable, running: initial }: { reachable: boole
           })
         }
       >
-        {running || starting ? "Running… (takes ~2 min)" : "Scrape & match now"}
+        {busy ? (
+          <>
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            Checking courts… (~2 min)
+          </>
+        ) : (
+          "Scrape & match now"
+        )}
       </button>
-      <span className="text-sm text-muted">
-        {reachable ? "Also runs daily at 00:30." : "⚠️ Worker not reachable."}
+      <span className="text-xs text-muted">
+        {reachable ? "Also runs nightly at 00:30" : "⚠️ Worker not reachable"}
       </span>
     </div>
   );

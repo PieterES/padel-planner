@@ -1,68 +1,200 @@
 @import "tailwindcss";
 
+/* Padel palette: night-court navy, court blue, ball lime. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --card: #f9fafb;
-  --accent: #0f766e;
-  --accent-soft: #ccfbf1;
+  --background: #f3f5f1;
+  --surface: #ffffff;
+  --foreground: #0f1b2d;
+  --muted: #5f6b7a;
+  --line: #e3e7e1;
+  --card: #ffffff;
+  --navy: #0b1f3a;
+  --navy-ink: #ffffff;
+  --court: #1d5fd6;
+  --court-soft: #e6eefc;
+  --lime: #c8f03c;
+  --lime-ink: #10210a;
+  --accent: #0b1f3a; /* primary buttons */
+  --accent-soft: #e6eefc;
+  --danger: #c2341b;
+  --ok: #15803d;
+  --shadow: 0 1px 2px rgb(15 27 45 / 0.06), 0 4px 16px rgb(15 27 45 / 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b0f0e;
-    --foreground: #ededed;
-    --muted: #9ca3af;
-    --line: #262b2a;
-    --card: #141a19;
-    --accent: #2dd4bf;
-    --accent-soft: #134e4a;
+    --background: #070d18;
+    --surface: #0f1828;
+    --foreground: #e8edf5;
+    --muted: #93a0b4;
+    --line: #1e2a3d;
+    --card: #0f1828;
+    --navy: #050a14;
+    --navy-ink: #e8edf5;
+    --court: #6b9bff;
+    --court-soft: #142443;
+    --lime: #c8f03c;
+    --lime-ink: #10210a;
+    --accent: #c8f03c;
+    --accent-soft: #1b2a17;
+    --danger: #ff7a5c;
+    --ok: #4ade80;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 24px rgb(0 0 0 / 0.25);
   }
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-card: var(--card);
+  --color-navy: var(--navy);
+  --color-navy-ink: var(--navy-ink);
+  --color-court: var(--court);
+  --color-court-soft: var(--court-soft);
+  --color-lime: var(--lime);
+  --color-lime-ink: var(--lime-ink);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-}
-
-a {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-nav a {
-  text-decoration: none;
+/* In a layer so Tailwind utilities (e.g. text-lime-ink on a link) win. */
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+  a {
+    color: inherit;
+  }
 }
 
 @layer components {
-  .btn {
-    @apply inline-flex items-center rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-background disabled:opacity-50;
-  }
-  .btn-ghost {
-    @apply inline-flex items-center rounded-md border border-line px-3 py-1.5 text-sm;
-  }
-  .input {
-    @apply rounded-md border border-line bg-background px-2 py-1 text-sm;
-  }
-  .card {
-    @apply rounded-lg border border-line bg-card p-4;
-  }
   h1 {
-    @apply mb-4 text-2xl font-semibold;
+    @apply font-display text-3xl font-bold tracking-tight;
   }
   h2 {
-    @apply mb-3 text-lg font-semibold;
+    @apply font-display text-lg font-semibold tracking-tight;
+  }
+
+  .card {
+    @apply rounded-2xl border border-line bg-card p-4 sm:p-5;
+    box-shadow: var(--shadow);
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-lime {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-lime px-4 py-2 text-sm font-semibold text-lime-ink transition hover:brightness-95 active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-1.5 text-sm font-medium transition hover:border-muted disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center rounded-xl px-3 py-1.5 text-sm font-medium text-danger transition hover:bg-danger/10;
+  }
+
+  .input {
+    @apply rounded-xl border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-court focus:ring-2 focus:ring-court/20;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full bg-court-soft px-2.5 py-0.5 text-xs font-medium text-court;
+  }
+  .chip-muted {
+    @apply inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-0.5 text-xs font-medium text-muted;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-widest text-muted;
+  }
+
+  .pill {
+    @apply rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm font-medium whitespace-nowrap no-underline transition hover:border-muted;
+  }
+  .pill-active {
+    @apply border-transparent bg-navy text-navy-ink hover:border-transparent;
+  }
+}
+
+/* iOS-style switch for day toggles: <input type="checkbox" class="switch"> */
+.switch {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 2.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background: var(--line);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.switch::before {
+  content: "";
+  position: absolute;
+  top: 0.1875rem;
+  left: 0.1875rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 9999px;
+  background: white;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  transition: transform 0.15s;
+}
+.switch:checked {
+  background: var(--court);
+}
+.switch:checked::before {
+  transform: translateX(1rem);
+}
+.switch:focus-visible {
+  outline: 2px solid var(--court);
+  outline-offset: 2px;
+}
+
+/* Square checkbox styled to match. */
+.check {
+  appearance: none;
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 0.375rem;
+  border: 1.5px solid var(--muted);
+  display: inline-grid;
+  place-content: center;
+  cursor: pointer;
+}
+.check:checked {
+  background: var(--court);
+  border-color: var(--court);
+}
+.check:checked::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.3rem;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: translateY(-1px) rotate(-45deg);
+}
+
+/* Day rows grey out when switched off. */
+.day-row:has(.switch:not(:checked)) .day-times {
+  opacity: 0.35;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+}
+@media (prefers-color-scheme: dark) {
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
   }
 }

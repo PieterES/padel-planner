@@ -26,11 +26,11 @@ export function WeeklyHoursForm({
         labels={labels}
         fallback={{ startMin: 19 * 60, endMin: 23 * 60 }}
       />
-      <div className="mt-3 flex items-center gap-3">
+      <div className="mt-4 flex items-center gap-3">
         <button className="btn" disabled={pending}>
           {pending ? "Saving…" : weekStart ? "Save for this week" : "Save default week"}
         </button>
-        {message && !pending && <span className="text-sm text-muted">{message}</span>}
+        {message && !pending && <span className="text-sm font-medium text-ok">{message}</span>}
       </div>
     </form>
   );

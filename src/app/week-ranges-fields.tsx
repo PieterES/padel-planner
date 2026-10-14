@@ -4,8 +4,8 @@ import { fmtMinutes } from "@/lib/time";
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 /**
- * Seven rows of [✓ day] from–until. Field names match parseWeekRanges(prefix).
- * Days without a range are unchecked and show `fallback` as a starting point.
+ * Seven rows of [switch day] from–until. Field names match parseWeekRanges(prefix).
+ * Days without a range are switched off and show `fallback` as a starting point.
  */
 export function WeekRangesFields({
   prefix,
@@ -20,30 +20,38 @@ export function WeekRangesFields({
   labels?: string[];
 }) {
   return (
-    <div className="space-y-1.5 text-sm">
+    <div className="divide-y divide-line overflow-hidden rounded-xl border border-line">
       {DAYS.map((day, i) => {
         const v = values[i];
+        const weekend = i >= 5;
         return (
-          <div key={day} className="flex items-center gap-2">
-            <label className="flex w-36 items-center gap-1.5">
-              <input type="checkbox" name={`${prefix}_${i}_on`} defaultChecked={!!v} />
+          <div
+            key={day}
+            className={`day-row flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5 ${weekend ? "bg-court-soft/40" : "bg-surface"}`}
+          >
+            <label className="flex w-40 cursor-pointer items-center gap-3 text-sm font-medium">
+              <input type="checkbox" className="switch" name={`${prefix}_${i}_on`} defaultChecked={!!v} />
               {labels[i]}
             </label>
-            <input
-              className="input"
-              type="time"
-              step={900}
-              name={`${prefix}_${i}_start`}
-              defaultValue={fmtMinutes(v?.startMin ?? fallback.startMin)}
-            />
-            –
-            <input
-              className="input"
-              type="time"
-              step={900}
-              name={`${prefix}_${i}_end`}
-              defaultValue={fmtMinutes(v?.endMin ?? fallback.endMin)}
-            />
+            <div className="day-times flex items-center gap-2 text-sm transition-opacity">
+              <input
+                className="input py-1.5 tabular-nums"
+                type="time"
+                step={900}
+                aria-label={`${labels[i]} from`}
+                name={`${prefix}_${i}_start`}
+                defaultValue={fmtMinutes(v?.startMin ?? fallback.startMin)}
+              />
+              <span className="text-muted">until</span>
+              <input
+                className="input py-1.5 tabular-nums"
+                type="time"
+                step={900}
+                aria-label={`${labels[i]} until`}
+                name={`${prefix}_${i}_end`}
+                defaultValue={fmtMinutes(v?.endMin ?? fallback.endMin)}
+              />
+            </div>
           </div>
         );
       })}

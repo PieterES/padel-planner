@@ -4,6 +4,7 @@ import { getSettings } from "@/lib/data";
 import { db, schema } from "@/lib/db";
 import { addDays, mondayOf, toLocal } from "@/lib/time";
 import { rulesToWeekRanges } from "@/lib/week-ranges";
+import { Icon } from "../ui";
 import { resetWeek } from "./actions";
 import { WeeklyHoursForm } from "./weekly-hours-form";
 
@@ -56,37 +57,44 @@ export function AvailabilityEditor({
       : w === addDays(thisMonday, 7)
         ? "Next week"
         : `${dayMonth(w)} – ${dayMonth(addDays(w, 6))}`;
-  const pill = (active: boolean) =>
-    `rounded-full border border-line px-3 py-1 text-sm no-underline ${active ? "bg-accent text-background" : ""}`;
+  const pill = (active: boolean) => `pill ${active ? "pill-active" : ""}`;
 
   return (
-    <section>
-      <nav className="mb-4 flex flex-wrap gap-2">
+    <section className="card">
+      <nav className="-mx-1 mb-5 flex gap-2 overflow-x-auto px-1 pb-1">
         <Link href={basePath} className={pill(!selected)}>
+          <Icon name="repeat" className="mr-1.5 inline h-3.5 w-3.5 align-[-2px]" />
           Default week
         </Link>
         {weeks.map((w) => (
           <Link key={w} href={`${basePath}?week=${w}`} className={pill(w === selected)}>
             {weekLabel(w)}
-            {overridden.has(w) && " •"}
+            {overridden.has(w) && (
+              <>
+                <span className="ml-1.5 inline-block h-2 w-2 rounded-full bg-lime align-middle ring-1 ring-lime-ink/30" />
+                <span className="sr-only"> (changed)</span>
+              </>
+            )}
           </Link>
         ))}
       </nav>
 
       {selected ? (
-        <p className="mb-4 text-sm text-muted">
-          {dayMonth(selected)} – {dayMonth(addDays(selected, 6))}:{" "}
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+          <span className="font-display text-base font-semibold">
+            {dayMonth(selected)} – {dayMonth(addDays(selected, 6))}
+          </span>
           {override ? (
-            <strong className="text-foreground">custom for this week</strong>
+            <span className="chip bg-lime/30 text-lime-ink dark:text-lime">custom for this week</span>
           ) : (
-            "following your default week"
+            <span className="chip-muted">following your default week</span>
           )}
-          . Changes here only apply to this week.
-        </p>
+          <span className="text-muted">Changes here only apply to this week.</span>
+        </div>
       ) : (
         <p className="mb-4 text-sm text-muted">
-          Tick the days you can usually play and from what time until when. This repeats every
-          week, unless you change a specific week above (• = changed).
+          Switch on the days you can usually play and set from when until when. This repeats every
+          week, unless you change a specific week above (<span className="inline-block h-2 w-2 rounded-full bg-lime align-middle" /> = changed).
         </p>
       )}
 
@@ -105,7 +113,7 @@ export function AvailabilityEditor({
 
       {override && (
         <form action={resetWeek.bind(null, userId, selected!)} className="mt-3">
-          <button className="btn-ghost">Reset this week to default</button>
+          <button className="btn-ghost">↺ Reset this week to default</button>
         </form>
       )}
     </section>

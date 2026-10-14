@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { AvailabilityEditor } from "@/app/me/availability-editor";
+import { Avatar } from "@/app/ui";
 
 /** Admin edits a friend's availability (e.g. to fill in test data). */
 export default async function FriendAvailabilityPage({
@@ -18,19 +19,26 @@ export default async function FriendAvailabilityPage({
   const friends = db.select().from(schema.users).orderBy(asc(schema.users.name)).all();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <Link href="/admin" className="text-sm">
+        <Link href="/admin" className="text-sm text-muted no-underline hover:text-foreground">
           ← Admin
         </Link>
-        <h1 className="mt-2">Availability: {friend.name}</h1>
-        <nav className="flex flex-wrap gap-2 text-sm">
+        <div className="mt-3 mb-4 flex items-center gap-3">
+          <Avatar name={friend.name} size="h-12 w-12 text-base" />
+          <div>
+            <p className="eyebrow">Editing availability</p>
+            <h1>{friend.name}</h1>
+          </div>
+        </div>
+        <nav className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {friends.map((f) => (
             <Link
               key={f.id}
               href={`/admin/friends/${f.id}`}
-              className={`rounded-full border border-line px-3 py-1 no-underline ${f.id === id ? "bg-accent text-background" : ""}`}
+              className={`pill flex items-center gap-2 !py-1 !pl-1 ${f.id === id ? "pill-active" : ""}`}
             >
+              <Avatar name={f.name} size="h-6 w-6 text-[10px]" />
               {f.name}
             </Link>
           ))}
