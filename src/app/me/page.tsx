@@ -1,7 +1,7 @@
-import { magicLink, requireUser } from "@/lib/auth";
-import { CopyField } from "../copy-field";
+import { requireUser } from "@/lib/auth";
 import { BallMark, PageHeader, Section } from "../ui";
 import { AvailabilityEditor } from "./availability-editor";
+import { PasswordForm } from "./password-form";
 
 export default async function MePage({ searchParams }: PageProps<"/me">) {
   const { welcome, week } = await searchParams;
@@ -15,8 +15,22 @@ export default async function MePage({ searchParams }: PageProps<"/me">) {
           <div>
             <p className="font-display text-lg font-semibold">Welcome, {user.name}!</p>
             <p className="text-sm text-muted">
-              Set when you can usually play below. Save your personal link (bottom of this page) to
-              get back in on another phone or browser.
+              Set when you can usually play below. On another phone or laptop, just log in with your
+              name and password.
+            </p>
+          </div>
+        </div>
+      )}
+      {!user.passwordHash && (
+        <div className="card flex items-start gap-3 border-lime bg-lime/10">
+          <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-lime font-bold text-lime-ink">
+            !
+          </span>
+          <div>
+            <p className="font-display text-lg font-semibold">Set a password</p>
+            <p className="text-sm text-muted">
+              So you can log in on any device with your name ({user.name}) and password. Scroll down
+              to “Password”.
             </p>
           </div>
         </div>
@@ -30,10 +44,10 @@ export default async function MePage({ searchParams }: PageProps<"/me">) {
 
       <Section
         icon="key"
-        title="Your personal link"
-        description="This link logs you in. Bookmark it, or use it on another device. Don’t share it."
+        title="Password"
+        description={`Log in anywhere with your name “${user.name}” and this password.`}
       >
-        <CopyField value={magicLink(user.magicToken)} />
+        <PasswordForm userId={user.id} askCurrent={!!user.passwordHash} />
       </Section>
     </div>
   );

@@ -43,6 +43,13 @@
       "when": 1792011871439,
       "tag": "0005_fast_jamie_braddock",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1792015020363,
+      "tag": "0006_low_mastermind",
+      "breakpoints": true
     }
   ]
 }

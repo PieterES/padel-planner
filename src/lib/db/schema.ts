@@ -8,7 +8,10 @@ const createdAt = () =>
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
+  /** Session token: the login cookie's value (also usable as a /u/<token> recovery link). */
   magicToken: text("magic_token").notNull().unique(),
+  /** scrypt hash (see src/lib/password.ts); null until the friend sets a password. */
+  passwordHash: text("password_hash"),
   isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
   createdAt: createdAt(),
 });

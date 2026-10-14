@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { currentUser, isAdmin } from "@/lib/auth";
+import { LoginForm } from "./login/login-form";
 import { Hero } from "./ui";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
@@ -16,15 +17,21 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           Everyone sets when they can play. Every night we check Peakz Padel for free courts and
           show you the slots where enough of you can make it.
         </p>
-        {invalid ? (
-          <p className="mt-6 inline-block rounded-xl bg-danger/15 px-4 py-2 text-sm font-medium text-navy-ink">
-            That link isn’t valid (anymore). Ask in the group chat for a new one.
+        <div className="mt-8 grid items-start gap-6 sm:grid-cols-[1fr_20rem]">
+          <p className="text-sm text-navy-ink/75">
+            New here? Open the <strong className="text-navy-ink">invite link</strong> from the group
+            chat to make an account. Already joined? Log in with your name and password, on any
+            device.
           </p>
-        ) : (
-          <p className="mt-6 inline-block rounded-xl bg-white/10 px-4 py-2 text-sm text-navy-ink">
-            Open the invite link from the group chat to join, or your personal link to log in.
-          </p>
-        )}
+          <div className="rounded-2xl bg-surface p-5 text-foreground">
+            {invalid && (
+              <p className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+                That link isn’t valid (anymore). Log in instead.
+              </p>
+            )}
+            <LoginForm />
+          </div>
+        </div>
       </Hero>
 
       <div className="grid gap-4 sm:grid-cols-3">

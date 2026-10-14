@@ -2,8 +2,9 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { requireCanEdit } from "@/lib/auth";
+import { currentUser, requireCanEdit } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
+import { hashPassword, passwordProblem, verifyPassword } from "@/lib/password";
 import { mondayOf } from "@/lib/time";
 import { parseWeekRanges } from "@/lib/week-ranges";
 
@@ -58,4 +59,28 @@ export async function resetWeek(userId: number, weekStart: string) {
     .where(and(eq(schema.weekOverrides.userId, userId), eq(schema.weekOverrides.weekStart, weekStart)))
     .run();
   refresh();
+}
+
+/**
+ * Set or change a password. Friends changing their own existing password must
+ * give the current one; the admin can set anyone's (e.g. when it's forgotten).
+ */
+export async function setPassword(
+  userId: number,
+  _prev: string | null,
+  formData: FormData,
+): Promise<string | null> {
+  await requireCanEdit(userId);
+  const user = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
+  if (!user) return "Unknown friend.";
+  const self = (await currentUser())?.id === userId;
+  if (self && user.passwordHash && !verifyPassword(String(formData.get("current") ?? ""), user.passwordHash)) {
+    return "Current password is wrong.";
+  }
+  const password = String(formData.get("password") ?? "");
+  const problem = passwordProblem(password, String(formData.get("confirm") ?? ""));
+  if (problem) return problem;
+  db.update(schema.users).set({ passwordHash: hashPassword(password) }).where(eq(schema.users.id, userId)).run();
+  refresh();
+  return "Password saved ✓";
 }

@@ -45,6 +45,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             </Link>
             <div className="min-w-0 flex-1">{links.length > 0 && <NavLinks links={links} />}</div>
             {user && <Avatar name={user.name} />}
+            {(user || admin) && (
+              <form action="/logout" method="post">
+                <button className="rounded-full px-2.5 py-1.5 text-sm text-navy-ink/70 transition hover:bg-white/10 hover:text-navy-ink">
+                  Log out
+                </button>
+              </form>
+            )}
           </nav>
         </header>
         <main className="mx-auto max-w-4xl px-4 py-8">{children}</main>

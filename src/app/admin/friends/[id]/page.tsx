@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { AvailabilityEditor } from "@/app/me/availability-editor";
-import { Avatar } from "@/app/ui";
+import { PasswordForm } from "@/app/me/password-form";
+import { Avatar, Section } from "@/app/ui";
 
 /** Admin edits a friend's availability (e.g. to fill in test data). */
 export default async function FriendAvailabilityPage({
@@ -49,6 +50,17 @@ export default async function FriendAvailabilityPage({
         basePath={`/admin/friends/${friend.id}`}
         week={typeof week === "string" ? week : undefined}
       />
+      <Section
+        icon="key"
+        title="Password"
+        description={
+          friend.passwordHash
+            ? `${friend.name} has a password. Set a new one here if they forgot it.`
+            : `${friend.name} has no password yet, so they can only log in with their personal link. Set one and tell them.`
+        }
+      >
+        <PasswordForm key={friend.id} userId={friend.id} askCurrent={false} />
+      </Section>
     </div>
   );
 }

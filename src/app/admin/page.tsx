@@ -100,8 +100,13 @@ export default async function AdminPage() {
                   ⚠ set availability
                 </Link>
               )}
+              {!u.passwordHash && (
+                <span className="chip-muted" title="Can only log in with their personal link">
+                  no password
+                </span>
+              )}
               <details className="group ml-auto">
-                <summary className="btn-ghost cursor-pointer list-none">Personal link</summary>
+                <summary className="btn-ghost cursor-pointer list-none">Login link</summary>
                 <div className="mt-2 flex w-full flex-wrap items-center gap-2 sm:w-[28rem]">
                   <CopyField value={magicLink(u.magicToken)} />
                   <form action={regenerateLink.bind(null, u.id)}>

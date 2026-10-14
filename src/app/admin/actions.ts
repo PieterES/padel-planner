@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { newMagicToken, requireAdmin } from "@/lib/auth";
+import { newMagicToken, requireAdmin, userByName } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { parseWeekRanges } from "@/lib/week-ranges";
 import { triggerRun } from "@/lib/worker-client";
@@ -13,6 +13,7 @@ const done = () => revalidatePath("/admin");
 export async function addUser(formData: FormData) {
   await requireAdmin();
   const name = z.string().trim().min(1).max(40).parse(formData.get("name"));
+  if (userByName(name)) return; // names are logins, so they must be unique
   db.insert(schema.users).values({ name, magicToken: newMagicToken() }).run();
   done();
 }

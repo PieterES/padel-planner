@@ -1,5 +1,5 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db, schema } from "./db";
@@ -19,6 +19,20 @@ export const newMagicToken = () => randomBytes(18).toString("base64url");
 export function userByToken(token: string | undefined) {
   if (!token) return undefined;
   return db.select().from(schema.users).where(eq(schema.users.magicToken, token)).get();
+}
+
+/** Case-insensitive lookup by display name (names are unique ignoring case). */
+export function userByName(name: string) {
+  return db
+    .select()
+    .from(schema.users)
+    .where(sql`lower(${schema.users.name}) = lower(${name.trim()})`)
+    .get();
+}
+
+/** Log this browser in as `magicToken`'s user. */
+export async function signIn(magicToken: string) {
+  (await cookies()).set(USER_COOKIE, magicToken, COOKIE_OPTS);
 }
 
 export async function currentUser() {
