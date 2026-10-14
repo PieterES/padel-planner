@@ -21,7 +21,7 @@ npm run spike          # Playwright recorder for reverse-engineering peakzpadel.
 docker compose up -d --build   # production (web + worker), data in ./data
 ```
 
-Admin access: open `/admin/login?token=$ADMIN_TOKEN` once. Friends sign themselves up through the group invite link `/join/<settings.inviteToken>` (name only, no email; the admin can rotate or close it). Each friend then has a personal `/u/<magic token>` link that sets the login cookie, shown on `/me` and `/admin`.
+Admin access: open `/admin/login?token=$ADMIN_TOKEN` once. Friends join through the group invite link `/join/<settings.inviteToken>` with a name + password, and log in on any device with name (case-insensitive, unique) + password on the home page (`src/app/login`). Passwords are scrypt hashes (`src/lib/password.ts`, with an in-memory 5-failure lockout). The login cookie's value is the user's `magicToken`, which also still works as a `/u/<token>` recovery link from `/admin`. Friends without a password are nagged on `/me`; the admin can set anyone's password on `/admin/friends/[id]`.
 
 ## Architecture
 
