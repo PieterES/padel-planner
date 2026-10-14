@@ -52,3 +52,18 @@ const publicUrl = (path: string) =>
 
 export const magicLink = (token: string) => publicUrl(`/u/${token}`);
 export const inviteLink = (token: string) => publicUrl(`/join/${token}`);
+
+/** A friend may edit their own availability; the admin may edit anyone's. */
+export async function requireCanEdit(userId: number) {
+  const user = await currentUser();
+  if (user?.id === userId) return;
+  if (await isAdmin()) return;
+  redirect("/");
+}
+
+/** Pages any friend or the admin may view. Returns the friend, if logged in as one. */
+export async function requireViewer() {
+  const user = await currentUser();
+  if (!user && !(await isAdmin())) redirect("/");
+  return user;
+}

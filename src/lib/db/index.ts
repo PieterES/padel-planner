@@ -16,7 +16,11 @@ function open() {
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("busy_timeout = 5000");
   sqlite.pragma("foreign_keys = ON");
-  const db = drizzle(sqlite, { schema });
+  return drizzle(sqlite, { schema });
+}
+
+/** Apply pending migrations (idempotent) and seed defaults. */
+function prepare(db: Db) {
   const runMigrations = () => migrate(db, { migrationsFolder: join(process.cwd(), "drizzle") });
   try {
     runMigrations();
@@ -26,7 +30,6 @@ function open() {
     runMigrations();
   }
   seed(db);
-  return db;
 }
 
 export type Db = ReturnType<typeof open>;
@@ -57,9 +60,18 @@ function seed(db: Db) {
 }
 
 // Opened lazily (not at import, so `next build` never touches the DB) and
-// reused across Next.js hot reloads.
+// reused across Next.js hot reloads. Migrations are re-checked once per module
+// load, so a dev server picks up new migrations without a restart.
 const g = globalThis as unknown as { __padelDb?: Db };
-const instance = () => (g.__padelDb ??= open());
+let prepared = false;
+const instance = () => {
+  const db = (g.__padelDb ??= open());
+  if (!prepared) {
+    prepare(db);
+    prepared = true;
+  }
+  return db;
+};
 
 export const db = new Proxy({} as Db, {
   get(_, prop) {

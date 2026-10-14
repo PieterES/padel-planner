@@ -2,61 +2,60 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
-import { requireUser } from "@/lib/auth";
+import { requireCanEdit } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
-import { cellsToRules } from "@/lib/grid";
+import { mondayOf } from "@/lib/time";
+import { parseWeekRanges } from "@/lib/week-ranges";
 
-export async function saveWeeklyGrid(cells: string[]) {
-  const user = await requireUser();
-  const rules = cellsToRules(z.array(z.string().max(8)).max(7 * 40).parse(cells));
-  db.transaction((tx) => {
-    tx.delete(schema.availabilityRules).where(eq(schema.availabilityRules.userId, user.id)).run();
-    if (rules.length) {
-      tx.insert(schema.availabilityRules).values(rules.map((r) => ({ ...r, userId: user.id }))).run();
-    }
-  });
-  revalidatePath("/me");
-  revalidatePath("/matches");
+// Availability pages: /me and /admin/friends/[id].
+const refresh = () => revalidatePath("/", "layout");
+
+function assertMonday(weekStart: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart) || mondayOf(weekStart) !== weekStart) {
+    throw new Error(`not a Monday: ${weekStart}`);
+  }
 }
 
-const toMin = (t: string) => {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-};
+/**
+ * Saves the week form (fields from WeekRangesFields, prefix "av"):
+ * weekStart = null → the default week; a Monday → an override for that week only.
+ */
+export async function saveWeek(
+  userId: number,
+  weekStart: string | null,
+  _prev: string | null,
+  formData: FormData,
+): Promise<string | null> {
+  await requireCanEdit(userId);
+  const ranges = parseWeekRanges(formData, "av");
 
-const exceptionForm = z
-  .object({
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    kind: z.enum(["available", "unavailable"]),
-    wholeDay: z.literal("on").optional(),
-    start: z.string().regex(/^\d{2}:\d{2}$/).optional().or(z.literal("")),
-    end: z.string().regex(/^\d{2}:\d{2}$/).optional().or(z.literal("")),
-  })
-  .transform((f) => ({
-    date: f.date,
-    kind: f.kind,
-    startMin: f.wholeDay || !f.start ? null : toMin(f.start),
-    endMin: f.wholeDay || !f.end ? null : f.end === "00:00" ? 24 * 60 : toMin(f.end),
-  }))
-  .refine((f) => (f.startMin === null) === (f.endMin === null), "Set both times or whole day")
-  .refine((f) => f.startMin === null || f.endMin! > f.startMin, "End must be after start");
-
-export async function addException(_prev: string | null, formData: FormData): Promise<string | null> {
-  const user = await requireUser();
-  const parsed = exceptionForm.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return parsed.error.issues[0]?.message ?? "Invalid input";
-  db.insert(schema.availabilityExceptions).values({ ...parsed.data, userId: user.id }).run();
-  revalidatePath("/me");
-  revalidatePath("/matches");
-  return null;
+  if (weekStart === null) {
+    const rules = ranges.flatMap((r, i) =>
+      r ? [{ userId, weekday: i + 1, startMin: r.startMin, endMin: r.endMin }] : [],
+    );
+    db.transaction((tx) => {
+      tx.delete(schema.availabilityRules).where(eq(schema.availabilityRules.userId, userId)).run();
+      if (rules.length) tx.insert(schema.availabilityRules).values(rules).run();
+    });
+  } else {
+    assertMonday(weekStart);
+    db.insert(schema.weekOverrides)
+      .values({ userId, weekStart, ranges })
+      .onConflictDoUpdate({
+        target: [schema.weekOverrides.userId, schema.weekOverrides.weekStart],
+        set: { ranges },
+      })
+      .run();
+  }
+  refresh();
+  return "Saved ✓";
 }
 
-export async function deleteException(id: number) {
-  const user = await requireUser();
-  db.delete(schema.availabilityExceptions)
-    .where(and(eq(schema.availabilityExceptions.id, id), eq(schema.availabilityExceptions.userId, user.id)))
+/** Drop a week's override so it follows the default week again. */
+export async function resetWeek(userId: number, weekStart: string) {
+  await requireCanEdit(userId);
+  db.delete(schema.weekOverrides)
+    .where(and(eq(schema.weekOverrides.userId, userId), eq(schema.weekOverrides.weekStart, weekStart)))
     .run();
-  revalidatePath("/me");
-  revalidatePath("/matches");
+  refresh();
 }

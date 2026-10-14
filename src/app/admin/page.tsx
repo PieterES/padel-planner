@@ -1,18 +1,22 @@
 import { asc, desc } from "drizzle-orm";
+import Link from "next/link";
 import { inviteLink, magicLink, requireAdmin } from "@/lib/auth";
 import { getSettings } from "@/lib/data";
 import { db, schema } from "@/lib/db";
 import { describeWhen } from "@/lib/matching";
-import { fmtMinutes } from "@/lib/time";
 import { workerStatus } from "@/lib/worker-client";
-import { addUser, deleteUser, regenerateLink, saveSettings, scrapeNow, setInvite } from "./actions";
+import { addUser, deleteUser, regenerateLink, saveSettings, setInvite } from "./actions";
+import { WeekRangesFields } from "../week-ranges-fields";
+import { ScrapeButton } from "./scrape-button";
 
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export default async function AdminPage() {
   await requireAdmin();
   const settings = getSettings();
   const users = db.select().from(schema.users).orderBy(asc(schema.users.name)).all();
+  const withRules = new Set(
+    db.selectDistinct({ id: schema.availabilityRules.userId }).from(schema.availabilityRules).all().map((r) => r.id),
+  );
   const locations = db.select().from(schema.locations).orderBy(asc(schema.locations.name)).all();
   const runs = db.select().from(schema.scrapeRuns).orderBy(desc(schema.scrapeRuns.id)).limit(5).all();
   const worker = await workerStatus();
@@ -23,23 +27,16 @@ export default async function AdminPage() {
 
       <section>
         <h2>Scraping</h2>
-        <div className="mb-3 flex items-center gap-3">
-          <form action={scrapeNow}>
-            <button className="btn" disabled={!worker.reachable || worker.running}>
-              {worker.running ? "Running…" : "Scrape & match now"}
-            </button>
-          </form>
-          <span className="text-sm text-muted">
-            {worker.reachable ? "Also runs daily at 00:30." : "⚠️ Worker not reachable."}
-          </span>
-        </div>
+        <ScrapeButton reachable={worker.reachable} running={worker.running} />
         <table className="w-full text-left text-sm">
           <thead className="text-muted">
             <tr>
               <th className="py-1">Run</th>
               <th>Started</th>
               <th>Status</th>
-              <th>Slots</th>
+              <th title="Free (court, start time, length) options at the enabled clubs, next 28 days">
+                Free court times
+              </th>
               <th>Matches</th>
             </tr>
           </thead>
@@ -90,6 +87,9 @@ export default async function AdminPage() {
           {users.map((u) => (
             <li key={u.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
               <span className="w-24 font-medium">{u.name}</span>
+              <Link href={`/admin/friends/${u.id}`} className="btn-ghost no-underline">
+                {withRules.has(u.id) ? "Edit availability" : "⚠️ Set availability"}
+              </Link>
               <input
                 className="input min-w-0 flex-1 font-mono text-xs"
                 readOnly
@@ -114,7 +114,13 @@ export default async function AdminPage() {
 
       <section>
         <h2>Group settings</h2>
-        <form action={saveSettings} className="space-y-5 text-sm">
+        {/* key: after an action React resets the form, and a <select> goes back to its
+            first-render default; remount with the saved values instead. */}
+        <form
+          key={JSON.stringify([settings, locations.map((l) => l.enabled)])}
+          action={saveSettings}
+          className="space-y-5 text-sm"
+        >
           <fieldset>
             <legend className="mb-1 font-medium">Clubs</legend>
             {locations.map((l) => (
@@ -156,22 +162,11 @@ export default async function AdminPage() {
 
           <fieldset>
             <legend className="mb-1 font-medium">When we play (match must fit inside)</legend>
-            <div className="space-y-1">
-              {DAYS.map((day, i) => {
-                const w = settings.windows[i];
-                return (
-                  <div key={day} className="flex items-center gap-2">
-                    <label className="flex w-32 items-center gap-1.5">
-                      <input type="checkbox" name={`win_${i}_on`} defaultChecked={!!w} />
-                      {day}
-                    </label>
-                    <input className="input" type="time" step={1800} name={`win_${i}_start`} defaultValue={fmtMinutes(w?.startMin ?? 18 * 60)} />
-                    –
-                    <input className="input" type="time" step={1800} name={`win_${i}_end`} defaultValue={fmtMinutes(w?.endMin ?? 23 * 60)} />
-                  </div>
-                );
-              })}
-            </div>
+            <WeekRangesFields
+              prefix="win"
+              values={settings.windows}
+              fallback={{ startMin: 18 * 60, endMin: 23 * 60 }}
+            />
           </fieldset>
 
           <button className="btn">Save settings</button>

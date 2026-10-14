@@ -1,4 +1,5 @@
-import { DAY_MIN, addDays, weekdayOf, type Weekday } from "./time";
+import { DAY_MIN, addDays, mondayOf, weekdayOf, type Weekday } from "./time";
+import type { WeekRanges } from "./week-ranges";
 
 /** Half-open interval [start, end) in minutes since local midnight. */
 export interface Interval {
@@ -6,6 +7,7 @@ export interface Interval {
   end: number;
 }
 
+/** A friend's default week: one row per available weekday. */
 export interface AvailabilityRule {
   userId: number;
   weekday: Weekday;
@@ -13,13 +15,11 @@ export interface AvailabilityRule {
   endMin: number;
 }
 
-export interface AvailabilityException {
+/** Replaces the default week for one specific week (all 7 days, null = not available). */
+export interface WeekOverride {
   userId: number;
-  date: string; // YYYY-MM-DD (Amsterdam)
-  /** null start/end means the whole day. */
-  startMin: number | null;
-  endMin: number | null;
-  kind: "available" | "unavailable";
+  weekStart: string; // Monday, YYYY-MM-DD (Amsterdam)
+  ranges: WeekRanges;
 }
 
 export function mergeIntervals(intervals: Interval[]): Interval[] {
@@ -33,42 +33,24 @@ export function mergeIntervals(intervals: Interval[]): Interval[] {
   return out;
 }
 
-export function subtractInterval(intervals: Interval[], cut: Interval): Interval[] {
-  return intervals.flatMap((i) => {
-    if (cut.end <= i.start || cut.start >= i.end) return [i];
-    const parts: Interval[] = [];
-    if (cut.start > i.start) parts.push({ start: i.start, end: cut.start });
-    if (cut.end < i.end) parts.push({ start: cut.end, end: i.end });
-    return parts;
-  });
-}
-
-function exceptionInterval(e: AvailabilityException): Interval {
-  return { start: e.startMin ?? 0, end: e.endMin ?? DAY_MIN };
-}
-
-/**
- * A user's free time on one local date: weekly rules, plus "available"
- * exceptions, minus "unavailable" exceptions (unavailable wins on overlap).
- */
+/** A user's free time on one local date: the week's override if there is one, else the default week. */
 export function freeIntervals(
   rules: AvailabilityRule[],
-  exceptions: AvailabilityException[],
+  overrides: WeekOverride[],
   userId: number,
   date: string,
 ): Interval[] {
   const weekday = weekdayOf(date);
-  const todays = exceptions.filter((e) => e.userId === userId && e.date === date);
-  let free = mergeIntervals([
-    ...rules
+  const override = overrides.find((o) => o.userId === userId && o.weekStart === mondayOf(date));
+  if (override) {
+    const r = override.ranges[weekday - 1];
+    return r ? [{ start: r.startMin, end: r.endMin }] : [];
+  }
+  return mergeIntervals(
+    rules
       .filter((r) => r.userId === userId && r.weekday === weekday)
       .map((r) => ({ start: r.startMin, end: r.endMin })),
-    ...todays.filter((e) => e.kind === "available").map(exceptionInterval),
-  ]);
-  for (const e of todays.filter((e) => e.kind === "unavailable")) {
-    free = subtractInterval(free, exceptionInterval(e));
-  }
-  return free;
+  );
 }
 
 /**
@@ -77,7 +59,7 @@ export function freeIntervals(
  */
 export function isFreeFor(
   rules: AvailabilityRule[],
-  exceptions: AvailabilityException[],
+  overrides: WeekOverride[],
   userId: number,
   date: string,
   startMin: number,
@@ -86,8 +68,8 @@ export function isFreeFor(
   const covers = (free: Interval[], s: number, e: number) =>
     free.some((i) => i.start <= s && i.end >= e);
   const end = startMin + durationMin;
-  const today = freeIntervals(rules, exceptions, userId, date);
+  const today = freeIntervals(rules, overrides, userId, date);
   if (end <= DAY_MIN) return covers(today, startMin, end);
-  const tomorrow = freeIntervals(rules, exceptions, userId, addDays(date, 1));
+  const tomorrow = freeIntervals(rules, overrides, userId, addDays(date, 1));
   return covers(today, startMin, DAY_MIN) && covers(tomorrow, 0, end - DAY_MIN);
 }

@@ -21,6 +21,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               🎾 Padel Planner
             </Link>
             {user && <Link href="/matches">Matches</Link>}
+            {(user || admin) && <Link href="/runs">Runs</Link>}
             {user && <Link href="/me">My availability</Link>}
             {admin && <Link href="/admin">Admin</Link>}
             {user && <span className="ml-auto text-muted">{user.name}</span>}

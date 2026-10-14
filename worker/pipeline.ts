@@ -1,10 +1,13 @@
-import { eq } from "drizzle-orm";
+import { desc, eq, lt } from "drizzle-orm";
 import { db as defaultDb, schema, type Db } from "../src/lib/db";
 import { currentMatches, getEnabledLocations, getSettings } from "../src/lib/data";
 import { fetchAvailability } from "../src/lib/peakz/client";
 import { addDays, toLocal } from "../src/lib/time";
 
 export type Trigger = "manual" | "cron" | "cli";
+
+/** Runs whose match snapshots are kept (older snapshots are deleted). */
+const KEEP_RUN_SNAPSHOTS = 30;
 
 export interface PipelineResult {
   runId: number;
@@ -14,7 +17,7 @@ export interface PipelineResult {
 
 let running: Promise<PipelineResult> | null = null;
 
-/** Scrape Peakz → replace stored slots → count matches. One run at a time. */
+/** Scrape Peakz → replace stored slots → snapshot ranked matches. One run at a time. */
 export function runPipeline(trigger: Trigger, db: Db = defaultDb): Promise<PipelineResult> {
   running ??= run(trigger, db).finally(() => (running = null));
   return running;
@@ -55,11 +58,35 @@ async function run(trigger: Trigger, db: Db): Promise<PipelineResult> {
       }
     });
 
-    const matchCount = currentMatches(db, startedAt).length;
-    db.update(schema.scrapeRuns)
-      .set({ status: "ok", finishedAt: new Date(), slotCount: slots.length, matchCount })
-      .where(eq(schema.scrapeRuns.id, runId))
-      .run();
+    const matches = currentMatches(db, startedAt);
+    const matchCount = matches.length;
+    db.transaction((tx) => {
+      const rows = matches.map((m, i) => ({
+        runId,
+        rank: i + 1,
+        locationId: m.locationId,
+        locationName: m.locationName,
+        startUtc: m.startUtc,
+        durationMin: m.durationMin,
+        courts: m.courts.map((c) => ({ name: c.name, indoor: c.indoor })),
+        players: m.players,
+      }));
+      for (let i = 0; i < rows.length; i += 200) {
+        tx.insert(schema.runMatches).values(rows.slice(i, i + 200)).run();
+      }
+      tx.update(schema.scrapeRuns)
+        .set({ status: "ok", finishedAt: new Date(), slotCount: slots.length, matchCount })
+        .where(eq(schema.scrapeRuns.id, runId))
+        .run();
+      const cutoff = tx
+        .select({ id: schema.scrapeRuns.id })
+        .from(schema.scrapeRuns)
+        .orderBy(desc(schema.scrapeRuns.id))
+        .limit(1)
+        .offset(KEEP_RUN_SNAPSHOTS - 1)
+        .get();
+      if (cutoff) tx.delete(schema.runMatches).where(lt(schema.runMatches.runId, cutoff.id)).run();
+    });
 
     return { runId, slotCount: slots.length, matchCount };
   } catch (e) {

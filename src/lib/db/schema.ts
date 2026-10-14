@@ -16,19 +16,21 @@ export const users = sqliteTable("users", {
 export const availabilityRules = sqliteTable("availability_rules", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  weekday: integer("weekday").notNull(), // 1 = Monday … 7 = Sunday
+  weekday: integer("weekday").notNull(), // 1 = Monday … 7 = Sunday (default week)
   startMin: integer("start_min").notNull(),
   endMin: integer("end_min").notNull(),
 });
 
-export const availabilityExceptions = sqliteTable("availability_exceptions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  date: text("date").notNull(), // YYYY-MM-DD, Amsterdam
-  startMin: integer("start_min"), // null = whole day
-  endMin: integer("end_min"),
-  kind: text("kind", { enum: ["available", "unavailable"] }).notNull(),
-});
+/** Replaces a friend's default week for one specific week. */
+export const weekOverrides = sqliteTable(
+  "week_overrides",
+  {
+    userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    weekStart: text("week_start").notNull(), // Monday, YYYY-MM-DD (Amsterdam)
+    ranges: text("ranges", { mode: "json" }).$type<(TimeWindow | null)[]>().notNull(), // 7 days
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.weekStart] })],
+);
 
 /** Peakz clubs the group may play at. */
 export const locations = sqliteTable("locations", {
@@ -69,6 +71,19 @@ export const scrapeRuns = sqliteTable("scrape_runs", {
   slotCount: integer("slot_count"),
   matchCount: integer("match_count"),
   error: text("error"),
+});
+
+/** Snapshot of each run's matches, ranked (players desc, then time). */
+export const runMatches = sqliteTable("run_matches", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  runId: integer("run_id").notNull().references(() => scrapeRuns.id, { onDelete: "cascade" }),
+  rank: integer("rank").notNull(), // 1 = best
+  locationId: text("location_id").notNull(),
+  locationName: text("location_name").notNull(),
+  startUtc: integer("start_utc", { mode: "timestamp" }).notNull(),
+  durationMin: integer("duration_min").notNull(),
+  courts: text("courts", { mode: "json" }).$type<{ name: string; indoor: boolean | null }[]>().notNull(),
+  players: text("players", { mode: "json" }).$type<{ id: number; name: string }[]>().notNull(),
 });
 
 /** Singleton row (id = 1) with the group-wide constraints. */

@@ -37,3 +37,8 @@ export function fmtMinutes(minutes: number): string {
   const m = ((minutes % DAY_MIN) + DAY_MIN) % DAY_MIN;
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 }
+
+/** Monday (YYYY-MM-DD) of the week containing `date`. */
+export function mondayOf(date: string): string {
+  return addDays(date, 1 - weekdayOf(date));
+}

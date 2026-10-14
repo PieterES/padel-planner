@@ -1,14 +1,15 @@
 import { desc, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth";
-import { currentMatches, matchDeepLinker } from "@/lib/data";
+import { currentMatches } from "@/lib/data";
 import { db, schema } from "@/lib/db";
 import { describeWhen, type MatchGroup } from "@/lib/matching";
 import { toLocal } from "@/lib/time";
+import { MatchCard, toMatchCard } from "../match-card";
 
 export default async function MatchesPage() {
   const user = await requireUser();
   const matches = currentMatches();
-  const link = matchDeepLinker();
+  const slugs = new Map(db.select().from(schema.locations).all().map((l) => [l.id, l.slug]));
   const lastRun = db
     .select()
     .from(schema.scrapeRuns)
@@ -38,33 +39,9 @@ export default async function MatchesPage() {
           <section key={day}>
             <h2>{describeWhen(ms[0].startUtc, 0).split(" ").slice(0, 3).join(" ")}</h2>
             <ul className="space-y-2">
-              {ms.map((m) => {
-                const mine = m.players.some((p) => p.id === user.id);
-                return (
-                  <li key={m.key} className={`card ${mine ? "" : "opacity-60"}`}>
-                    <div className="flex flex-wrap items-baseline gap-x-3">
-                      <span className="font-semibold">
-                        {describeWhen(m.startUtc, m.durationMin).split(" ").slice(3).join(" ")}
-                      </span>
-                      <span>{m.locationName}</span>
-                      <span className="text-sm text-muted">
-                        {m.courts.length} court{m.courts.length === 1 ? "" : "s"} free (
-                        {[...new Set(m.courts.map((c) => (c.indoor ? "indoor" : "outdoor")))].join(
-                          " / ",
-                        )}
-                        )
-                      </span>
-                      <a className="ml-auto text-sm" href={link(m)} target="_blank" rel="noreferrer">
-                        Book at Peakz →
-                      </a>
-                    </div>
-                    <p className="mt-1 text-sm">
-                      <span className="text-muted">{m.players.length} free: </span>
-                      {m.players.map((p) => p.name).join(", ")}
-                    </p>
-                  </li>
-                );
-              })}
+              {ms.map((m) => (
+                <MatchCard key={m.key} m={toMatchCard(m, { slugs, viewerId: user.id, withDate: false })} />
+              ))}
             </ul>
           </section>
         ))}

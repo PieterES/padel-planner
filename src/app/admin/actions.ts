@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { newMagicToken, requireAdmin } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
-import type { TimeWindow } from "@/lib/matching";
+import { parseWeekRanges } from "@/lib/week-ranges";
 import { triggerRun } from "@/lib/worker-client";
 
 const done = () => revalidatePath("/admin");
@@ -29,11 +29,6 @@ export async function regenerateLink(id: number) {
   done();
 }
 
-const toMin = (t: unknown) => {
-  const [h, m] = String(t).split(":").map(Number);
-  return h * 60 + m;
-};
-
 export async function saveSettings(formData: FormData) {
   await requireAdmin();
   const enabled = new Set(formData.getAll("location"));
@@ -43,13 +38,7 @@ export async function saveSettings(formData: FormData) {
       .where(eq(schema.locations.id, loc.id))
       .run();
   }
-  const windows: (TimeWindow | null)[] = Array.from({ length: 7 }, (_, i) => {
-    if (!formData.get(`win_${i}_on`)) return null;
-    const startMin = toMin(formData.get(`win_${i}_start`));
-    const end = String(formData.get(`win_${i}_end`));
-    const endMin = end === "00:00" ? 24 * 60 : toMin(end);
-    return endMin > startMin ? { startMin, endMin } : null;
-  });
+  const windows = parseWeekRanges(formData, "win");
   db.update(schema.settings)
     .set({
       indoorOutdoor: z.enum(["indoor", "outdoor", "any"]).parse(formData.get("indoorOutdoor")),

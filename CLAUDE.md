@@ -30,12 +30,12 @@ There are two processes sharing one SQLite file (`DATABASE_PATH`, default `data/
 - **web**: Next.js 16 App Router in `src/app`. Reads the DB directly in server components and writes through server actions (`*/actions.ts`). It never scrapes; to start a run it calls the worker over HTTP (`src/lib/worker-client.ts` → `WORKER_URL`).
 - **worker**: `worker/index.ts`, plain Node run with tsx. It runs node-cron daily at 00:30 Europe/Amsterdam and exposes an internal API (`/run`, `/status`), so only one scrape runs at a time. The worker port must never be published.
 
-The scrape → match flow lives in `worker/pipeline.ts`: fetch Peakz → replace the `slots` table → record counts in `scrape_runs`. Matches aren't stored; `/matches` computes them on each request with `currentMatches()` (`src/lib/data.ts`), so availability edits show up immediately.
+The scrape → match flow lives in `worker/pipeline.ts`: fetch Peakz → replace the `slots` table → snapshot the ranked matches into `run_matches` (last 30 runs kept). There are two views: `/runs` shows a run's snapshot (top 5 + show more), and `/matches` recomputes live with `currentMatches()` (`src/lib/data.ts`), so availability edits show up there immediately. Both render `src/app/match-card.tsx`.
 
 The core logic is pure and unit-tested in `src/lib`:
-- `availability.ts`: weekly rules + dated exceptions → free intervals ("unavailable" exceptions win; slots crossing midnight check the next day).
+- `availability.ts`: a friend's default week (`availability_rules`) or, for a specific week, its `week_overrides` row (7 ranges, which replace the whole default week) → free intervals. Slots crossing midnight check the next day.
 - `matching.ts`: constraints, grouping by (location, start, duration), and ranking.
-- `grid.ts`: converts the `/me` 30-minute grid cells to and from availability rules.
+- `week-ranges.ts`: one from–until range per weekday, used for both a friend's weekly availability (`/me`, form prefix `av`) and the group's playing hours (`/admin`, prefix `win`). The form fields come from `src/app/week-ranges-fields.tsx`.
 - `time.ts`: all wall-clock logic is **Europe/Amsterdam**. Instants are stored as UTC `Date`s; convert with `toLocal`/`fromLocal`, never with the server's local time.
 
 ## Peakz / Foys API
@@ -47,10 +47,11 @@ Peakz runs on Foys. Court availability is a **public, unauthenticated JSON API**
 - The court `type` string ("Double court indoor", "Single court outdoor", "Beach volleybal …") gives indoor/single. Non-padel courts are dropped in `parse.ts`.
 - Booking is a rolling 28-day window. A run makes (enabled clubs × 29 days) requests, throttled to about 1 per second; keep it polite.
 - The full club list with uuids is at `/court-booking/public/api/v1/locations`. Clubs are seeded in `src/lib/db/index.ts`; to add one, insert a `locations` row (uuid + deep-link slug).
+- When drizzle-kit wants to ask interactively (e.g. "is this table a rename?"), split the change into two `db:generate` runs: drop first, then add.
 - Parser tests run against a captured response in `src/lib/peakz/__fixtures__/`. If Peakz changes the API, re-capture with `SPIKE_URLS=<court-booking url> HEADLESS=1 npm run spike` (output goes to `scratch/`).
 
 ## Gotchas
 
-- `db` (`src/lib/db/index.ts`) is a lazy proxy, so `next build` never opens the DB. Migrations and seeding run on first use in each process, with one retry for the web/worker startup race.
+- `db` (`src/lib/db/index.ts`) is a lazy proxy, so `next build` never opens the DB. Migrations and seeding run on first use after each module load (so `next dev` applies new migrations on hot reload), with one retry for the web/worker startup race.
 - `cacheComponents` is intentionally off. Pages are dynamic because they read the auth cookie, and synchronous better-sqlite3 reads would otherwise be prerendered.
 - The package is ESM (`"type": "module"`); run scripts as files with tsx, not `tsx -e` (that loads them as CJS).

@@ -1,4 +1,4 @@
-import { isFreeFor, type AvailabilityException, type AvailabilityRule } from "./availability";
+import { isFreeFor, type AvailabilityRule, type WeekOverride } from "./availability";
 import { fmtMinutes, toLocal } from "./time";
 
 export interface Court {
@@ -51,7 +51,7 @@ export interface MatchGroup {
 export interface MatchInput {
   players: Player[];
   rules: AvailabilityRule[];
-  exceptions: AvailabilityException[];
+  overrides: WeekOverride[];
   courts: Court[];
   slots: Slot[];
   constraints: Constraints;
@@ -93,7 +93,7 @@ export function findMatches(input: MatchInput): MatchGroup[] {
 
     const local = toLocal(slot.startUtc);
     const players = input.players.filter((p) =>
-      isFreeFor(input.rules, input.exceptions, p.id, local.date, local.minutes, slot.durationMin),
+      isFreeFor(input.rules, input.overrides, p.id, local.date, local.minutes, slot.durationMin),
     );
     if (players.length < input.constraints.minPlayers) continue;
 

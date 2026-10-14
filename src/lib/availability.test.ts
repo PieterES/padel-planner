@@ -3,18 +3,34 @@ import {
   freeIntervals,
   isFreeFor,
   mergeIntervals,
-  type AvailabilityException,
   type AvailabilityRule,
+  type WeekOverride,
 } from "./availability";
+import { mondayOf } from "./time";
 
 const h = (hours: number) => hours * 60;
-// 2026-10-20 is a Tuesday.
+// 2026-10-20 is a Tuesday; its week starts Monday 2026-10-19.
 const TUE = "2026-10-20";
 
 const rules: AvailabilityRule[] = [
   { userId: 1, weekday: 2, startMin: h(18), endMin: h(20) },
   { userId: 1, weekday: 2, startMin: h(20), endMin: h(23) },
 ];
+
+const week = (weekStart: string, ranges: WeekOverride["ranges"]): WeekOverride => ({
+  userId: 1,
+  weekStart,
+  ranges,
+});
+const none: WeekOverride["ranges"] = [null, null, null, null, null, null, null];
+
+describe("mondayOf", () => {
+  it("finds the Monday of the week", () => {
+    expect(mondayOf(TUE)).toBe("2026-10-19");
+    expect(mondayOf("2026-10-19")).toBe("2026-10-19");
+    expect(mondayOf("2026-10-25")).toBe("2026-10-19"); // Sunday, DST change day
+  });
+});
 
 describe("mergeIntervals", () => {
   it("merges adjacent and overlapping blocks", () => {
@@ -33,43 +49,27 @@ describe("mergeIntervals", () => {
 });
 
 describe("freeIntervals", () => {
-  it("uses the weekly rule for that weekday", () => {
+  it("uses the default week for that weekday", () => {
     expect(freeIntervals(rules, [], 1, TUE)).toEqual([{ start: h(18), end: h(23) }]);
     expect(freeIntervals(rules, [], 1, "2026-10-21")).toEqual([]);
   });
 
-  it("subtracts unavailable exceptions and lets a whole-day one clear everything", () => {
-    const partial: AvailabilityException[] = [
-      { userId: 1, date: TUE, startMin: h(19), endMin: h(21), kind: "unavailable" },
-    ];
-    expect(freeIntervals(rules, partial, 1, TUE)).toEqual([
-      { start: h(18), end: h(19) },
-      { start: h(21), end: h(23) },
-    ]);
-    const wholeDay: AvailabilityException[] = [
-      { userId: 1, date: TUE, startMin: null, endMin: null, kind: "unavailable" },
-    ];
-    expect(freeIntervals(rules, wholeDay, 1, TUE)).toEqual([]);
-  });
-
-  it("adds available exceptions, but unavailable wins on overlap", () => {
-    const ex: AvailabilityException[] = [
-      { userId: 1, date: "2026-10-21", startMin: h(10), endMin: h(14), kind: "available" },
-      { userId: 1, date: "2026-10-21", startMin: h(12), endMin: h(13), kind: "unavailable" },
-    ];
-    expect(freeIntervals(rules, ex, 1, "2026-10-21")).toEqual([
-      { start: h(10), end: h(12) },
-      { start: h(13), end: h(14) },
-    ]);
+  it("a week override replaces the whole default week, only for that week", () => {
+    const ranges = [...none];
+    ranges[2] = { startMin: h(10), endMin: h(14) }; // Wednesday
+    const o = [week("2026-10-19", ranges)];
+    expect(freeIntervals(rules, o, 1, TUE)).toEqual([]); // Tuesday not ticked that week
+    expect(freeIntervals(rules, o, 1, "2026-10-21")).toEqual([{ start: h(10), end: h(14) }]);
+    expect(freeIntervals(rules, o, 1, "2026-10-27")).toEqual([{ start: h(18), end: h(23) }]); // next week: default
   });
 
   it("ignores other users' data", () => {
-    expect(freeIntervals(rules, [], 2, TUE)).toEqual([]);
+    expect(freeIntervals(rules, [week("2026-10-19", none)], 2, TUE)).toEqual([]);
   });
 });
 
 describe("isFreeFor", () => {
-  it("requires the whole slot to be covered, across merged rule blocks", () => {
+  it("requires the whole slot to be covered", () => {
     expect(isFreeFor(rules, [], 1, TUE, h(19), 90)).toBe(true);
     expect(isFreeFor(rules, [], 1, TUE, h(22), 90)).toBe(false);
   });

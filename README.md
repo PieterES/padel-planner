@@ -2,7 +2,7 @@
 
 Finds Peakz Padel courts at times when at least 4 of us are free.
 
-- Every friend sets a weekly availability pattern plus exceptions on their personal link.
+- Every friend sets a default week (which days, from–until) and can change specific weeks, e.g. holidays or a busy week.
 - Every night at 00:30 (or when you press **Scrape & match now**) it checks Peakz court availability 4 weeks ahead for our clubs.
 - Everyone sees the matches on `/matches`, each with a booking link. Someone books by hand.
 

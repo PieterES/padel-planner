@@ -56,7 +56,7 @@ const run = (slots: Slot[], extra: Partial<Constraints> = {}) =>
   findMatches({
     players,
     rules,
-    exceptions: [],
+    overrides: [],
     courts,
     slots,
     constraints: { ...constraints, ...extra },
@@ -84,7 +84,7 @@ describe("findMatches", () => {
     expect(run([slot("u1", "2026-10-20", h(20))], { minPlayers: 6 })).toEqual([]);
     expect(
       findMatches({
-        players, rules, exceptions: [], courts, constraints,
+        players, rules, overrides: [], courts, constraints,
         slots: [slot("u1", "2026-10-20", h(20))],
         now: fromLocal("2026-10-21", 0),
       }),
@@ -111,7 +111,7 @@ describe("findMatches", () => {
     const s = slot("u1", "2026-10-27", h(20));
     expect(s.startUtc.toISOString()).toBe("2026-10-27T19:00:00.000Z"); // CET = UTC+1
     const ms = findMatches({
-      players, rules: tueAfter, exceptions: [], courts, constraints, slots: [s], now,
+      players, rules: tueAfter, overrides: [], courts, constraints, slots: [s], now,
     });
     expect(ms).toHaveLength(1);
   });
