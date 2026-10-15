@@ -62,45 +62,53 @@ export default async function AdminPage() {
 
         <ul className="divide-y divide-line">
           {users.map((u) => (
-            <li key={u.id} className="flex flex-wrap items-center gap-3 py-3 text-sm">
-              <Avatar name={u.name} size="h-9 w-9 text-xs" />
-              <span className="w-28 font-semibold">{u.name}</span>
-              {withRules.has(u.id) ? (
-                <Link href={`/admin/friends/${u.id}`} className="chip no-underline">
-                  ✓ availability set
-                </Link>
-              ) : (
-                <Link
-                  href={`/admin/friends/${u.id}`}
-                  className="chip bg-lime/30 text-lime-ink no-underline dark:text-lime"
-                >
-                  ⚠ set availability
-                </Link>
-              )}
-              {!u.passwordHash && (
-                <span className="chip-muted" title="Can only log in with their personal link">
-                  no password
-                </span>
-              )}
-              <details className="group ml-auto">
-                <summary className="btn-ghost cursor-pointer list-none">Login link</summary>
-                <div className="mt-2 flex w-full flex-wrap items-center gap-2 sm:w-[28rem]">
-                  <CopyField value={magicLink(u.magicToken)} />
-                  <form action={regenerateLink.bind(null, u.id)}>
-                    <button className="btn-ghost" title="Invalidates the old link">
-                      New
-                    </button>
-                  </form>
+            <li key={u.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3 text-sm">
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar name={u.name} size="h-9 w-9 text-xs" />
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{u.name}</p>
+                  <div className="mt-0.5 flex flex-wrap gap-1.5">
+                    {withRules.has(u.id) ? (
+                      <Link href={`/admin/friends/${u.id}`} className="chip no-underline">
+                        ✓ availability set
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/admin/friends/${u.id}`}
+                        className="chip bg-lime/30 text-lime-ink no-underline dark:text-lime"
+                      >
+                        ⚠ set availability
+                      </Link>
+                    )}
+                    {!u.passwordHash && (
+                      <span className="chip-muted" title="Can only log in with their personal link">
+                        no password
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </details>
-              <Link href={`/admin/friends/${u.id}`} className="btn-ghost no-underline">
-                Edit
-              </Link>
-              <form action={deleteUser.bind(null, u.id)}>
-                <button className="btn-danger" title={`Remove ${u.name}`}>
-                  Remove
-                </button>
-              </form>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <details className="group relative">
+                  <summary className="btn-ghost cursor-pointer list-none">Login link</summary>
+                  <div className="absolute right-0 z-10 mt-2 flex w-[min(28rem,calc(100vw-2rem))] flex-wrap items-center gap-2 rounded-xl border border-line bg-surface p-2 shadow-lg">
+                    <CopyField value={magicLink(u.magicToken)} />
+                    <form action={regenerateLink.bind(null, u.id)}>
+                      <button className="btn-ghost" title="Invalidates the old link">
+                        New
+                      </button>
+                    </form>
+                  </div>
+                </details>
+                <Link href={`/admin/friends/${u.id}`} className="btn-ghost no-underline">
+                  Edit
+                </Link>
+                <form action={deleteUser.bind(null, u.id)}>
+                  <button className="btn-danger" title={`Remove ${u.name}`}>
+                    Remove
+                  </button>
+                </form>
+              </div>
             </li>
           ))}
         </ul>

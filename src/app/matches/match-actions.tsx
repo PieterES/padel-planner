@@ -28,7 +28,7 @@ export function MatchActions({
 
   return (
     <div className="flex flex-wrap items-center gap-3 text-sm">
-      <div className="flex min-w-0 flex-1 items-center gap-2">
+      <div className={`flex min-w-0 flex-wrap items-center gap-2 sm:flex-1 ${ready ? "w-full sm:w-auto" : "flex-1"}`}>
         {inNames.length > 0 ? (
           <>
             <span className="flex -space-x-1.5">
@@ -48,7 +48,7 @@ export function MatchActions({
       </div>
 
       {isFriend && (
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           <button
             className={iAmIn ? "btn-ghost" : "btn"}
             disabled={pending}
