@@ -21,7 +21,9 @@ npm run spike          # Playwright recorder for reverse-engineering peakzpadel.
 docker compose up -d --build   # production (web + worker), data in ./data
 ```
 
-Admin access: log in on the home page as name `admin` (a special account, not a `users` row, so it never shows up as a friend; the name is reserved) with the password set under /admin → Admin account (hash in `settings.admin_password_hash`; before that `ADMIN_PASSWORD` from env, else "admin"). The admin session is the `pp_admin` cookie holding `ADMIN_TOKEN`; `/admin/login?token=$ADMIN_TOKEN` still works too. Friends join through the group invite link `/join/<settings.inviteToken>` with a name + password, and log in on any device with name (case-insensitive, unique) + password on the home page (`src/app/login`). Passwords are scrypt hashes (`src/lib/password.ts`, with an in-memory 5-failure lockout). The login cookie's value is the user's `magicToken`, which also still works as a `/u/<token>` recovery link from `/admin`. Friends without a password are nagged on `/me`; the admin can set anyone's password on `/admin/friends/[id]`.
+Admin access: log in on the home page as name `admin` (a special account, not a `users` row, so it never shows up as a friend; the name is reserved) with the password set under /admin → Admin account (hash in `settings.admin_password_hash`; before that `ADMIN_PASSWORD` from env, else "admin"). The admin session is the `pp_admin` cookie holding `ADMIN_TOKEN`; `/admin/login?token=$ADMIN_TOKEN` still works too.
+
+Permissions: every logged-in friend (and the admin) can use `/settings` (group settings + "Scrape & match now", actions in `src/app/settings/actions.ts` guarded by `requireViewer`). Only the admin gets `/admin`: invite link, add/remove friends, login links, other people's availability/passwords (`/admin/friends/[id]`), and the admin password (`requireAdmin`). Friends edit only their own availability (`requireCanEdit`). Friends join through the group invite link `/join/<settings.inviteToken>` with a name + password, and log in on any device with name (case-insensitive, unique) + password on the home page (`src/app/login`). Passwords are scrypt hashes (`src/lib/password.ts`, with an in-memory 5-failure lockout). The login cookie's value is the user's `magicToken`, which also still works as a `/u/<token>` recovery link from `/admin`. Friends without a password are nagged on `/me`; the admin can set anyone's password on `/admin/friends/[id]`.
 
 ## Architecture
 
@@ -31,6 +33,12 @@ There are two processes sharing one SQLite file (`DATABASE_PATH`, default `data/
 - **worker**: `worker/index.ts`, plain Node run with tsx. It runs node-cron daily at 00:30 Europe/Amsterdam and exposes an internal API (`/run`, `/status`), so only one scrape runs at a time. The worker port must never be published.
 
 The scrape → match flow lives in `worker/pipeline.ts`: fetch Peakz → replace the `slots` table → snapshot the ranked matches into `run_matches` (last 30 runs kept). There are two views: `/runs` shows a run's snapshot (top 5 + show more), and `/matches` recomputes live with `currentMatches()` (`src/lib/data.ts`), so availability edits show up there immediately. Both render `src/app/match-card.tsx`.
+
+Coordination: on `/matches` friends tap "I'm in" (`commitments`, keyed by `matchKey(location, start, duration)`); at `minPlayers` the match is "ready", and someone who's in taps "I booked it" → a `bookings` row (match details copied, since the slot vanishes from the next scrape) shown under Upcoming games, with an `.ics` at `/bookings/[id]/ics`. Actions in `src/app/matches/actions.ts`; reads in `src/lib/coordination.ts`.
+
+Push notifications (`src/lib/push.ts`, `web-push`): VAPID keys are generated into the settings row on first use; devices opt in on `/me` (service worker `public/sw.js`, `push_subscriptions` table, dead endpoints are pruned on 404/410). Sent: new matches per friend after each run (diff against the previous run's `run_matches`, skipped on the very first run; see `newMatchMessages` in `src/lib/notify.ts`), "ready" when a match reaches `minPlayers`, and "booked". Playwright's Chromium can't create real push subscriptions (no Google push keys), so test sending with the mocked `push.test.ts`.
+
+The app is an installable PWA (`src/app/manifest.ts`); icons come from `npm run icons` (`scripts/make-icons.ts`).
 
 The core logic is pure and unit-tested in `src/lib`:
 - `availability.ts`: a friend's default week (`availability_rules`) or, for a specific week, its `week_overrides` row (7 ranges, which replace the whole default week) → free intervals. Slots crossing midnight check the next day.

@@ -46,6 +46,8 @@ export interface MatchGroup {
   durationMin: number;
   courts: Court[];
   players: Player[];
+  /** Cheapest court price for this slot (whole court, all players), if known. */
+  price: number | null;
 }
 
 export interface MatchInput {
@@ -88,6 +90,9 @@ export function findMatches(input: MatchInput): MatchGroup[] {
     const existing = groups.get(key);
     if (existing) {
       if (!existing.courts.some((c) => c.id === court.id)) existing.courts.push(court);
+      if (slot.price !== null && (existing.price === null || slot.price < existing.price)) {
+        existing.price = slot.price;
+      }
       continue;
     }
 
@@ -105,6 +110,7 @@ export function findMatches(input: MatchInput): MatchGroup[] {
       durationMin: slot.durationMin,
       courts: [court],
       players,
+      price: slot.price,
     });
   }
 
@@ -116,6 +122,11 @@ export function findMatches(input: MatchInput): MatchGroup[] {
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Price per player for a court shared by 4 (padel doubles), rounded to cents. */
+export function pricePerPerson(price: number | null): number | null {
+  return price === null ? null : Math.round((price / 4) * 100) / 100;
+}
 
 export function describeWhen(startUtc: Date, durationMin: number): string {
   const l = toLocal(startUtc);

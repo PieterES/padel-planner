@@ -3,6 +3,7 @@ import type { AvailabilityRule } from "./availability";
 import {
   describeWhen,
   findMatches,
+  pricePerPerson,
   type Constraints,
   type Court,
   type Player,
@@ -120,5 +121,17 @@ describe("findMatches", () => {
 describe("describeWhen", () => {
   it("formats in Amsterdam time", () => {
     expect(describeWhen(fromLocal("2026-10-20", 20 * 60), 90)).toBe("Tue 20 Oct 20:00–21:30");
+  });
+});
+
+describe("price", () => {
+  it("keeps the cheapest court price per match and splits it by 4", () => {
+    const [m] = run([
+      { ...slot("u1", "2026-10-20", h(20)), price: 52.5 },
+      { ...slot("u2", "2026-10-20", h(20)), price: 42 },
+    ]);
+    expect(m.price).toBe(42);
+    expect(pricePerPerson(m.price)).toBe(10.5);
+    expect(pricePerPerson(null)).toBeNull();
   });
 });

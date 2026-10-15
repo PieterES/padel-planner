@@ -3,7 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import Link from "next/link";
 import { currentUser, isAdmin } from "@/lib/auth";
 import { NavLinks } from "./nav-links";
-import { Avatar, BallMark } from "./ui";
+import { Avatar, BallMark, Icon } from "./ui";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -28,7 +28,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const links = [
     ...(user || admin ? [{ href: "/matches", label: "Matches" }] : []),
     ...(user || admin ? [{ href: "/runs", label: "Runs" }] : []),
-    ...(user ? [{ href: "/me", label: "My week" }] : []),
+    ...(user ? [{ href: "/me", label: "My week", short: "Week" }] : []),
+    ...(user || admin ? [{ href: "/settings", label: "Settings" }] : []),
     ...(admin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
@@ -44,11 +45,20 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               </span>
             </Link>
             <div className="min-w-0 flex-1">{links.length > 0 && <NavLinks links={links} />}</div>
-            {user && <Avatar name={user.name} />}
+            {user && (
+              <span className="max-sm:hidden">
+                <Avatar name={user.name} />
+              </span>
+            )}
             {(user || admin) && (
               <form action="/logout" method="post">
-                <button className="rounded-full px-2.5 py-1.5 text-sm text-navy-ink/70 transition hover:bg-white/10 hover:text-navy-ink">
-                  Log out
+                <button
+                  title="Log out"
+                  aria-label="Log out"
+                  className="flex items-center gap-1.5 rounded-full px-2 py-1.5 text-sm text-navy-ink/70 transition hover:bg-white/10 hover:text-navy-ink"
+                >
+                  <Icon name="logout" />
+                  <span className="max-sm:hidden">Log out</span>
                 </button>
               </form>
             )}

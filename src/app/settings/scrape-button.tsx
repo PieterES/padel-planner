@@ -14,7 +14,7 @@ export function ScrapeButton({ reachable, running: initial }: { reachable: boole
     if (!running) return;
     const id = setInterval(async () => {
       try {
-        const s = await (await fetch("/admin/run-status", { cache: "no-store" })).json();
+        const s = await (await fetch("/settings/run-status", { cache: "no-store" })).json();
         if (!s.running) {
           setRunning(false);
           router.refresh(); // show the finished run in the table

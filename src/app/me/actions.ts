@@ -6,6 +6,7 @@ import { currentUser, requireCanEdit } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { hashPassword, passwordProblem, verifyPassword } from "@/lib/password";
 import { mondayOf } from "@/lib/time";
+import { sendPush } from "@/lib/push";
 import { parseWeekRanges } from "@/lib/week-ranges";
 
 // Availability pages: /me and /admin/friends/[id].
@@ -83,4 +84,31 @@ export async function setPassword(
   db.update(schema.users).set({ passwordHash: hashPassword(password) }).where(eq(schema.users.id, userId)).run();
   refresh();
   return "Password saved ✓";
+}
+
+/** Store this device's push subscription for the logged-in friend. */
+export async function savePushSubscription(sub: { endpoint: string; keys: { p256dh: string; auth: string } }) {
+  const user = await currentUser();
+  if (!user) return;
+  if (!/^https:\/\//.test(sub.endpoint) || !sub.keys?.p256dh || !sub.keys?.auth) return;
+  const row = { endpoint: sub.endpoint, userId: user.id, p256dh: sub.keys.p256dh, auth: sub.keys.auth };
+  db.insert(schema.pushSubscriptions)
+    .values(row)
+    .onConflictDoUpdate({ target: schema.pushSubscriptions.endpoint, set: row })
+    .run();
+}
+
+export async function removePushSubscription(endpoint: string) {
+  const user = await currentUser();
+  if (!user) return;
+  db.delete(schema.pushSubscriptions)
+    .where(and(eq(schema.pushSubscriptions.endpoint, endpoint), eq(schema.pushSubscriptions.userId, user.id)))
+    .run();
+}
+
+/** Send a test notification to the logged-in friend's devices. */
+export async function testPush(): Promise<number> {
+  const user = await currentUser();
+  if (!user) return 0;
+  return sendPush([user.id], { title: "Padel Planner 🎾", body: "Notifications are working!", url: "/matches" });
 }

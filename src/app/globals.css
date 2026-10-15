@@ -90,13 +90,13 @@
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
+    @apply inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
   }
   .btn-lime {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-lime px-4 py-2 text-sm font-semibold text-lime-ink transition hover:brightness-95 active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-lime px-4 py-2 text-sm font-semibold text-lime-ink transition hover:brightness-95 active:scale-[0.98];
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-1.5 text-sm font-medium transition hover:border-muted disabled:cursor-not-allowed disabled:opacity-40;
+    @apply inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-line bg-surface px-3 py-1.5 text-sm font-medium transition hover:border-muted disabled:cursor-not-allowed disabled:opacity-40;
   }
   .btn-danger {
     @apply inline-flex items-center justify-center rounded-xl px-3 py-1.5 text-sm font-medium text-danger transition hover:bg-danger/10;
@@ -107,10 +107,10 @@
   }
 
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full bg-court-soft px-2.5 py-0.5 text-xs font-medium text-court;
+    @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-court-soft px-2.5 py-0.5 text-xs font-medium text-court;
   }
   .chip-muted {
-    @apply inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-0.5 text-xs font-medium text-muted;
+    @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-line px-2.5 py-0.5 text-xs font-medium text-muted;
   }
 
   .eyebrow {

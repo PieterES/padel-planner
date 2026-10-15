@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <defs>
+      <radialGradient id="g" cx="38%" cy="32%" r="75%">
+        <stop offset="0" stop-color="#ecff8a"/>
+        <stop offset=".55" stop-color="#c8f03c"/>
+        <stop offset="1" stop-color="#93c11a"/>
+      </radialGradient>
+      <clipPath id="c"><circle cx="50" cy="50" r="46"/></clipPath>
+    </defs>
+    <circle cx="50" cy="50" r="46" fill="url(#g)"/>
+    <g clip-path="url(#c)">
+      <g fill="none" stroke="#fff" stroke-opacity=".95" stroke-width="3.6" stroke-linecap="round"
+         transform="translate(50 50) scale(1.15) translate(-50 -50)">
+        <!-- seams run off the ball's edge; the clip trims them -->
+        <path d="M2 24 C30 30 41 48 35 70 C32 82 25 92 18 102"/>
+        <path d="M98 76 C70 70 59 52 65 30 C68 18 75 8 82 -2"/>
+      </g>
+    </g>
+    <circle cx="50" cy="50" r="46" fill="none" stroke="#000" stroke-opacity=".08" stroke-width="1"/></svg>

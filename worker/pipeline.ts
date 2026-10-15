@@ -1,7 +1,9 @@
-import { desc, eq, lt } from "drizzle-orm";
+import { and, desc, eq, lt } from "drizzle-orm";
 import { db as defaultDb, schema, type Db } from "../src/lib/db";
 import { currentMatches, getEnabledLocations, getSettings } from "../src/lib/data";
+import { newMatchMessages } from "../src/lib/notify";
 import { fetchAvailability } from "../src/lib/peakz/client";
+import { sendPush } from "../src/lib/push";
 import { addDays, toLocal } from "../src/lib/time";
 
 export type Trigger = "manual" | "cron" | "cli";
@@ -70,6 +72,7 @@ async function run(trigger: Trigger, db: Db): Promise<PipelineResult> {
         durationMin: m.durationMin,
         courts: m.courts.map((c) => ({ name: c.name, indoor: c.indoor })),
         players: m.players,
+        price: m.price,
       }));
       for (let i = 0; i < rows.length; i += 200) {
         tx.insert(schema.runMatches).values(rows.slice(i, i + 200)).run();
@@ -88,6 +91,7 @@ async function run(trigger: Trigger, db: Db): Promise<PipelineResult> {
       if (cutoff) tx.delete(schema.runMatches).where(lt(schema.runMatches.runId, cutoff.id)).run();
     });
 
+    await notifyNewMatches(db, runId, matches);
     return { runId, slotCount: slots.length, matchCount };
   } catch (e) {
     db.update(schema.scrapeRuns)
@@ -95,5 +99,34 @@ async function run(trigger: Trigger, db: Db): Promise<PipelineResult> {
       .where(eq(schema.scrapeRuns.id, runId))
       .run();
     throw e;
+  }
+}
+
+/** Push "new match for you" for matches that weren't in the previous successful run. */
+async function notifyNewMatches(db: Db, runId: number, matches: Awaited<ReturnType<typeof currentMatches>>) {
+  try {
+    const prev = db
+      .select({ id: schema.scrapeRuns.id })
+      .from(schema.scrapeRuns)
+      .where(and(eq(schema.scrapeRuns.status, "ok"), lt(schema.scrapeRuns.id, runId)))
+      .orderBy(desc(schema.scrapeRuns.id))
+      .get();
+    if (!prev) return; // first run: everything is "new"; don't flood people
+    const previousKeys = new Set(
+      db
+        .select({ runId: schema.runMatches.runId, locationId: schema.runMatches.locationId, startUtc: schema.runMatches.startUtc, durationMin: schema.runMatches.durationMin })
+        .from(schema.runMatches)
+        .where(eq(schema.runMatches.runId, prev.id))
+        .all()
+        .map((r) => `${r.locationId}|${r.startUtc.toISOString()}|${r.durationMin}`),
+    );
+    const bookedKeys = new Set(db.select({ k: schema.bookings.matchKey }).from(schema.bookings).all().map((b) => b.k));
+    let sent = 0;
+    for (const [userId, message] of newMatchMessages(matches, previousKeys, bookedKeys)) {
+      sent += await sendPush([userId], message, db);
+    }
+    if (sent) console.log(`[push] sent ${sent} new-match notifications`);
+  } catch (e) {
+    console.warn("[push] new-match notifications failed", e);
   }
 }

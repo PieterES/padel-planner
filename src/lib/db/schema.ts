@@ -87,6 +87,40 @@ export const runMatches = sqliteTable("run_matches", {
   durationMin: integer("duration_min").notNull(),
   courts: text("courts", { mode: "json" }).$type<{ name: string; indoor: boolean | null }[]>().notNull(),
   players: text("players", { mode: "json" }).$type<{ id: number; name: string }[]>().notNull(),
+  price: real("price"),
+});
+
+/** "I'm in": a friend commits to a match (key = matchKey(location, start, duration)). */
+export const commitments = sqliteTable(
+  "commitments",
+  {
+    matchKey: text("match_key").notNull(),
+    userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.matchKey, t.userId] })],
+);
+
+/** A match someone booked at Peakz. Players = its commitments. */
+export const bookings = sqliteTable("bookings", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  matchKey: text("match_key").notNull().unique(),
+  locationId: text("location_id").notNull(),
+  locationName: text("location_name").notNull(),
+  startUtc: integer("start_utc", { mode: "timestamp" }).notNull(),
+  durationMin: integer("duration_min").notNull(),
+  price: real("price"),
+  bookedBy: integer("booked_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+});
+
+/** Web push endpoints (one per device/browser that enabled notifications). */
+export const pushSubscriptions = sqliteTable("push_subscriptions", {
+  endpoint: text("endpoint").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: createdAt(),
 });
 
 /** Singleton row (id = 1) with the group-wide constraints. */
@@ -101,4 +135,7 @@ export const settings = sqliteTable("settings", {
   inviteToken: text("invite_token"),
   /** Organiser login ("admin") password hash; null = ADMIN_PASSWORD env or "admin". */
   adminPasswordHash: text("admin_password_hash"),
+  /** VAPID keys for web push, generated on first use. */
+  vapidPublicKey: text("vapid_public_key"),
+  vapidPrivateKey: text("vapid_private_key"),
 });

@@ -1,7 +1,9 @@
 import { requireUser } from "@/lib/auth";
+import { vapidKeys } from "@/lib/push";
 import { BallMark, PageHeader, Section } from "../ui";
 import { AvailabilityEditor } from "./availability-editor";
 import { setPassword } from "./actions";
+import { Notifications } from "./notifications";
 import { PasswordForm } from "./password-form";
 
 export default async function MePage({ searchParams }: PageProps<"/me">) {
@@ -42,6 +44,14 @@ export default async function MePage({ searchParams }: PageProps<"/me">) {
         basePath="/me"
         week={typeof week === "string" ? week : undefined}
       />
+
+      <Section
+        icon="bell"
+        title="Notifications"
+        description="New matches you can play, when a match has enough players, and when someone books. Turn it on for each phone or laptop."
+      >
+        <Notifications vapidPublicKey={vapidKeys().publicKey} />
+      </Section>
 
       <Section
         icon="key"
