@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
+// Fonts ship with the app (no download from Google at build time; that breaks
+// the Docker build on the Pi).
+import "@fontsource-variable/inter";
+import "@fontsource-variable/space-grotesk";
 import Link from "next/link";
 import { currentUser, isAdmin } from "@/lib/auth";
 import { BottomNav, type NavItem } from "./nav-links";
 import { Avatar, BallMark, Icon } from "./ui";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const display = Space_Grotesk({ subsets: ["latin"], variable: "--font-display", weight: ["500", "600", "700"] });
 
 export const metadata: Metadata = {
   title: "Padel Planner",
@@ -36,7 +37,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   ];
 
   return (
-    <html lang="en" className={`${inter.variable} ${display.variable} h-full antialiased`}>
+    <html lang="en" className="h-full antialiased">
       <body className="min-h-full">
         <header className="sticky top-0 z-20 bg-navy text-navy-ink shadow-lg shadow-black/10">
           <nav className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-3">
